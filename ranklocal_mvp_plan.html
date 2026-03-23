@@ -1,0 +1,250 @@
+
+<div style="padding: 1rem 0;">
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 2rem;">
+  <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 1rem;">
+    <div style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px;">Nome sugerido</div>
+    <div style="font-size: 20px; font-weight: 500;">RankLocal.br</div>
+  </div>
+  <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 1rem;">
+    <div style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px;">Tempo ate MVP</div>
+    <div style="font-size: 20px; font-weight: 500;">30 dias</div>
+  </div>
+  <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 1rem;">
+    <div style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px;">Meta 90 dias</div>
+    <div style="font-size: 20px; font-weight: 500;">R$ 10k MRR</div>
+  </div>
+</div>
+
+<div id="stepper" style="margin-bottom: 2rem;">
+  <div style="display: flex; gap: 4px; margin-bottom: 16px;">
+    <button onclick="showStep(0)" id="btn0" style="flex:1; padding: 8px 4px; font-size: 12px; border-radius: var(--border-radius-md); cursor: pointer; font-weight: 500;">Proposta</button>
+    <button onclick="showStep(1)" id="btn1" style="flex:1; padding: 8px 4px; font-size: 12px; border-radius: var(--border-radius-md); cursor: pointer;">MVP</button>
+    <button onclick="showStep(2)" id="btn2" style="flex:1; padding: 8px 4px; font-size: 12px; border-radius: var(--border-radius-md); cursor: pointer;">Stack</button>
+    <button onclick="showStep(3)" id="btn3" style="flex:1; padding: 8px 4px; font-size: 12px; border-radius: var(--border-radius-md); cursor: pointer;">Precos</button>
+    <button onclick="showStep(4)" id="btn4" style="flex:1; padding: 8px 4px; font-size: 12px; border-radius: var(--border-radius-md); cursor: pointer;">Aquisicao</button>
+    <button onclick="showStep(5)" id="btn5" style="flex:1; padding: 8px 4px; font-size: 12px; border-radius: var(--border-radius-md); cursor: pointer;">Roadmap</button>
+  </div>
+  <div id="panel" style="background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem;"></div>
+</div>
+
+</div>
+
+<script>
+const steps = [
+  {
+    title: "Proposta de valor",
+    html: `
+    <div style="font-size: 15px; font-weight: 500; margin-bottom: 12px;">O que e o RankLocal</div>
+    <div style="font-size: 13px; color: var(--color-text-secondary); line-height: 1.7; margin-bottom: 16px;">
+      Ferramenta SaaS que ajuda negocios fisicos brasileiros (restaurantes, clinicas, oficinas, saloes) a serem encontrados no Google, Google Maps E nas respostas de IAs como ChatGPT, Gemini e Perplexity.
+    </div>
+    <div style="font-size: 14px; font-weight: 500; margin-bottom: 8px;">3 pilares do produto</div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="padding: 10px 14px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">
+        <div style="font-size: 13px; font-weight: 500;">1. Auditoria automatica do Google Meu Negocio</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary);">Analisa o perfil, encontra problemas e da tarefas semanais para melhorar o ranking local.</div>
+      </div>
+      <div style="padding: 10px 14px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">
+        <div style="font-size: 13px; font-weight: 500;">2. IA para reviews + posts</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary);">Gera respostas automaticas para avaliacoes e sugere Google Posts otimizados semanalmente.</div>
+      </div>
+      <div style="padding: 10px 14px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">
+        <div style="font-size: 13px; font-weight: 500;">3. GEO — Visibilidade em IAs</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary);">Monitora se o negocio aparece no ChatGPT/Gemini/Perplexity e da recomendacoes para melhorar.</div>
+      </div>
+    </div>
+    <div style="margin-top: 12px; font-size: 13px; color: var(--color-text-secondary); line-height: 1.6;">
+      <span style="font-weight: 500; color: var(--color-text-primary);">Diferencial fatal:</span> Tudo em portugues, com ticket acessivel (R$49-149/mes), enquanto concorrentes gringos cobram US$99-139/mes e nao entendem o mercado BR.
+    </div>`
+  },
+  {
+    title: "Features do MVP (30 dias)",
+    html: `
+    <div style="font-size: 14px; font-weight: 500; margin-bottom: 12px;">Semana 1-2: Core</div>
+    <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px;">
+      <div style="font-size: 13px; padding: 8px 12px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">Onboarding: usuario conecta Google Business Profile via OAuth</div>
+      <div style="font-size: 13px; padding: 8px 12px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">Auditoria automatica: checa fotos, descricao, categorias, horarios, atributos</div>
+      <div style="font-size: 13px; padding: 8px 12px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">Score de saude (0-100) com checklist de melhorias priorizadas</div>
+      <div style="font-size: 13px; padding: 8px 12px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">Dashboard com metricas: buscas, cliques, ligacoes, rotas solicitadas</div>
+    </div>
+    <div style="font-size: 14px; font-weight: 500; margin-bottom: 12px;">Semana 3: IA</div>
+    <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px;">
+      <div style="font-size: 13px; padding: 8px 12px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">Gerador de respostas a reviews com IA (tom personalizado por nicho)</div>
+      <div style="font-size: 13px; padding: 8px 12px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">Gerador de Google Posts semanais otimizados para SEO local</div>
+      <div style="font-size: 13px; padding: 8px 12px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">Sugestao de palavras-chave locais baseada na categoria do negocio</div>
+    </div>
+    <div style="font-size: 14px; font-weight: 500; margin-bottom: 12px;">Semana 4: GEO + Polish</div>
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="font-size: 13px; padding: 8px 12px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">Monitor GEO: consulta ChatGPT/Gemini/Perplexity APIs e verifica mencoes</div>
+      <div style="font-size: 13px; padding: 8px 12px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">Relatorio GEO: "Seu negocio aparece em 2/5 IAs. Veja o que fazer."</div>
+      <div style="font-size: 13px; padding: 8px 12px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">Landing page, checkout com Stripe/AbacatePay, onboarding flow</div>
+    </div>`
+  },
+  {
+    title: "Stack tecnica",
+    html: `
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="padding: 12px 14px; border-left: 3px solid #534AB7; background: var(--color-background-secondary); border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;">
+        <div style="font-size: 13px; font-weight: 500;">Frontend</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary);">Next.js 14+ (App Router) + Tailwind CSS + shadcn/ui. Deploy na Vercel. SSR para SEO da propria landing page.</div>
+      </div>
+      <div style="padding: 12px 14px; border-left: 3px solid #1D9E75; background: var(--color-background-secondary); border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;">
+        <div style="font-size: 13px; font-weight: 500;">Backend / API</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary);">Next.js API Routes (ou Supabase Edge Functions). Supabase para auth (OAuth Google), banco Postgres e storage.</div>
+      </div>
+      <div style="padding: 12px 14px; border-left: 3px solid #D85A30; background: var(--color-background-secondary); border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;">
+        <div style="font-size: 13px; font-weight: 500;">Integracao Google</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary);">Google Business Profile API (reviews, posts, insights, info). OAuth 2.0 para conectar perfil do usuario. DataForSEO API como backup para scraping de rankings locais.</div>
+      </div>
+      <div style="padding: 12px 14px; border-left: 3px solid #378ADD; background: var(--color-background-secondary); border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;">
+        <div style="font-size: 13px; font-weight: 500;">IA</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary);">Claude API (Sonnet) para gerar respostas a reviews e posts. OpenAI/Anthropic/Google APIs para monitor GEO (consultar IAs sobre o negocio).</div>
+      </div>
+      <div style="padding: 12px 14px; border-left: 3px solid #EF9F27; background: var(--color-background-secondary); border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;">
+        <div style="font-size: 13px; font-weight: 500;">Pagamento</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary);">AbacatePay (Pix Automatico + cartao, feito para devs BR) ou Stripe. Cobranca recorrente mensal.</div>
+      </div>
+      <div style="padding: 12px 14px; border-left: 3px solid #888780; background: var(--color-background-secondary); border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;">
+        <div style="font-size: 13px; font-weight: 500;">Jobs / Cron</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary);">Vercel Cron ou Supabase pg_cron para: auditoria semanal, pull de reviews, monitor GEO, envio de alertas por email/WhatsApp.</div>
+      </div>
+    </div>
+    <div style="margin-top: 12px; font-size: 12px; color: var(--color-text-secondary); line-height: 1.6;">
+      <span style="font-weight: 500;">Custo mensal estimado:</span> Supabase Free/Pro (R$0-130) + Vercel Pro (R$100) + APIs IA (~R$200 para 100 clientes) + DataForSEO (~R$250). Total: ~R$500-700/mes no inicio.
+    </div>`
+  },
+  {
+    title: "Modelo de precos",
+    html: `
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px;">
+      <div style="background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem; text-align: center;">
+        <div style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">Essencial</div>
+        <div style="font-size: 24px; font-weight: 500; margin-bottom: 4px;">R$49</div>
+        <div style="font-size: 11px; color: var(--color-text-secondary); margin-bottom: 12px;">/mes</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary); text-align: left; line-height: 1.8;">
+          Auditoria do perfil<br>
+          Score de saude<br>
+          Checklist semanal<br>
+          5 respostas IA/mes<br>
+          2 posts IA/mes
+        </div>
+      </div>
+      <div style="background: var(--color-background-primary); border: 2px solid var(--color-border-info); border-radius: var(--border-radius-lg); padding: 1rem; text-align: center;">
+        <div style="font-size: 11px; padding: 2px 8px; background: var(--color-background-info); color: var(--color-text-info); border-radius: var(--border-radius-md); display: inline-block; margin-bottom: 6px;">Popular</div>
+        <div style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">Profissional</div>
+        <div style="font-size: 24px; font-weight: 500; margin-bottom: 4px;">R$99</div>
+        <div style="font-size: 11px; color: var(--color-text-secondary); margin-bottom: 12px;">/mes</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary); text-align: left; line-height: 1.8;">
+          Tudo do Essencial +<br>
+          Respostas IA ilimitadas<br>
+          4 posts IA/mes<br>
+          Monitor GEO (3 IAs)<br>
+          Relatorio mensal PDF<br>
+          Monitoramento ranking
+        </div>
+      </div>
+      <div style="background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem; text-align: center;">
+        <div style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">Agencia</div>
+        <div style="font-size: 24px; font-weight: 500; margin-bottom: 4px;">R$299</div>
+        <div style="font-size: 11px; color: var(--color-text-secondary); margin-bottom: 12px;">/mes (ate 5 perfis)</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary); text-align: left; line-height: 1.8;">
+          Tudo do Profissional +<br>
+          Multi-perfil (ate 5)<br>
+          White-label reports<br>
+          API access<br>
+          Suporte prioritario
+        </div>
+      </div>
+    </div>
+    <div style="font-size: 12px; color: var(--color-text-secondary); line-height: 1.6;">
+      <span style="font-weight: 500;">Meta de unit economics:</span> CAC < R$150 | LTV > R$900 (churn 8%) | Payback < 2 meses. Com 100 clientes no plano Pro = R$9.900 MRR. Margem bruta ~85% (custo de APIs IA e infra ~R$1.500).
+    </div>`
+  },
+  {
+    title: "Canais de aquisicao",
+    html: `
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="padding: 12px 14px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 13px; font-weight: 500;">1. Comunidades locais (gratis)</div>
+          <span style="font-size: 11px; color: var(--color-text-success);">Semana 1-4</span>
+        </div>
+        <div style="font-size: 12px; color: var(--color-text-secondary); margin-top: 4px;">Grupos de WhatsApp de comerciantes, associacoes comerciais, CDLs, Sebrae local. Oferecer auditoria gratuita do Google Meu Negocio como isca.</div>
+      </div>
+      <div style="padding: 12px 14px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 13px; font-weight: 500;">2. Conteudo SEO + Build in Public</div>
+          <span style="font-size: 11px; color: var(--color-text-info);">Continuo</span>
+        </div>
+        <div style="font-size: 12px; color: var(--color-text-secondary); margin-top: 4px;">Blog com artigos tipo "Como aparecer no Google Maps em [cidade]". YouTube shorts mostrando antes/depois. LinkedIn e Twitter mostrando MRR.</div>
+      </div>
+      <div style="padding: 12px 14px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 13px; font-weight: 500;">3. Ferramenta gratuita como lead magnet</div>
+          <span style="font-size: 11px; color: var(--color-text-success);">Semana 2</span>
+        </div>
+        <div style="font-size: 12px; color: var(--color-text-secondary); margin-top: 4px;">Pagina publica "Analise gratis seu Google Meu Negocio" — usuario coloca nome do negocio, recebe score + 3 dicas. Para ver tudo, precisa assinar.</div>
+      </div>
+      <div style="padding: 12px 14px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 13px; font-weight: 500;">4. Parcerias com agencias de marketing</div>
+          <span style="font-size: 11px; color: var(--color-text-warning);">Mes 2-3</span>
+        </div>
+        <div style="font-size: 12px; color: var(--color-text-secondary); margin-top: 4px;">Agencias de marketing local vendem RankLocal para seus clientes com comissao de 20-30%. O plano Agencia (R$299) e feito para elas.</div>
+      </div>
+      <div style="padding: 12px 14px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 13px; font-weight: 500;">5. Porta a porta digital</div>
+          <span style="font-size: 11px; color: var(--color-text-success);">Semana 1</span>
+        </div>
+        <div style="font-size: 12px; color: var(--color-text-secondary); margin-top: 4px;">Rodar auditoria em 50 negocios da sua regiao, mandar resultado por WhatsApp/email com oferta de trial gratis. Altissima conversao.</div>
+      </div>
+    </div>`
+  },
+  {
+    title: "Roadmap 90 dias",
+    html: `
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="padding: 14px; border-left: 4px solid #534AB7; background: var(--color-background-secondary); border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;">
+        <div style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">Semana 1-2: Fundacao</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary); line-height: 1.6;">Setup do projeto (Next.js + Supabase). Integracao com Google Business Profile API. Dashboard de auditoria. Landing page. Comecar porta a porta digital com 50 negocios.</div>
+      </div>
+      <div style="padding: 14px; border-left: 4px solid #1D9E75; background: var(--color-background-secondary); border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;">
+        <div style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">Semana 3-4: IA + Lancamento</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary); line-height: 1.6;">Motor de respostas IA para reviews. Gerador de Google Posts. Monitor GEO basico. Checkout e cobranca. Lancar para primeiros 10 clientes beta (gratis 14 dias).</div>
+      </div>
+      <div style="padding: 14px; border-left: 4px solid #D85A30; background: var(--color-background-secondary); border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;">
+        <div style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">Mes 2: Tracao</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary); line-height: 1.6;">Converter betas em pagantes. Ferramenta gratuita de auditoria como lead magnet. Conteudo SEO (5 artigos). Primeiras parcerias com agencias. Meta: 30-50 clientes.</div>
+      </div>
+      <div style="padding: 14px; border-left: 4px solid #378ADD; background: var(--color-background-secondary); border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;">
+        <div style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">Mes 3: Escala</div>
+        <div style="font-size: 12px; color: var(--color-text-secondary); line-height: 1.6;">Plano Agencia com white-label. Monitoramento de ranking no Maps (heat map). Relatorio PDF automatico. Integracao WhatsApp para alertas. Meta: 100 clientes = R$10k MRR.</div>
+      </div>
+    </div>
+    <div style="margin-top: 16px; padding: 12px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); font-size: 12px; color: var(--color-text-secondary); line-height: 1.6;">
+      <span style="font-weight: 500; color: var(--color-text-primary);">Apos 90 dias (V2):</span> Comparativo com concorrentes locais, sugestao de Schema Markup, integracao com redes sociais, app mobile, multi-idioma para LATAM.
+    </div>`
+  }
+];
+
+let current = 0;
+function showStep(i) {
+  current = i;
+  document.getElementById('panel').innerHTML = steps[i].html;
+  for (let j = 0; j < 6; j++) {
+    const b = document.getElementById('btn' + j);
+    if (j === i) {
+      b.style.background = 'var(--color-text-primary)';
+      b.style.color = 'var(--color-background-primary)';
+      b.style.border = 'none';
+    } else {
+      b.style.background = 'transparent';
+      b.style.color = 'var(--color-text-secondary)';
+      b.style.border = '0.5px solid var(--color-border-tertiary)';
+    }
+  }
+}
+showStep(0);
+</script>
