@@ -13,7 +13,18 @@
       "Bash(cp \"C:\\\\Users\\\\M²\\\\Documents\\\\vitrine-ai-setup/.eslintrc.json\" \"C:\\\\Users\\\\M²\\\\Documents\\\\vitrine-ai/.eslintrc.json\")",
       "Bash(cp \"C:\\\\Users\\\\M²\\\\Documents\\\\vitrine-ai-setup/.gitignore\" \"C:\\\\Users\\\\M²\\\\Documents\\\\vitrine-ai/.gitignore\")",
       "Bash(npm install:*)",
-      "Bash(npx shadcn@latest init --defaults)"
+      "Bash(npx shadcn@latest init --defaults)",
+      "Bash(npx shadcn@latest add card badge input label textarea select separator progress --yes)",
+      "Bash(npx shadcn@latest add toast --yes)",
+      "Bash(npx shadcn@latest add sonner --yes)",
+      "Bash(node -e \"const p = require\\(''./package.json''\\); console.log\\(JSON.stringify\\(p.dependencies, null, 2\\)\\)\")",
+      "Bash(npx next:*)",
+      "Bash(node -e \"const p = require\\(''./node_modules/tailwindcss/package.json''\\); console.log\\(p.version\\)\")",
+      "Bash(npx shadcn@latest add button card badge input label textarea select separator progress --yes)",
+      "Bash(npm run:*)",
+      "Bash(ls:*)",
+      "Bash(ls /c/Users/M²/Documents/vitrine-ai/app/\\\\\\(marketing\\\\\\)/)",
+      "Bash(ls /c/Users/M²/Documents/vitrine-ai/app/\\\\\\(app\\\\\\)/reviews/)"
     ]
   }
 }

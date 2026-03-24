@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat \"c:/Users/M²/Documents/vitrine-ai/app/\\(app\\)/dashboard/page.tsx\")",
+      "Bash(cat \"c:/Users/M²/Documents/vitrine-ai/app/\\(app\\)/layout.tsx\")",
+      "Bash(cat \"c:/Users/M²/Documents/vitrine-ai/app/\\(marketing\\)/page.tsx\")",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}
