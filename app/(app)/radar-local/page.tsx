@@ -3,86 +3,109 @@
 import { useState, useEffect } from "react";
 import { MapPin, TrendingUp, TrendingDown, RefreshCw, Info, ChevronDown, Lock } from "lucide-react";
 import Link from "next/link";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type GridCell = { rank: number | null; lat: number; lng: number };
-
-// ─── Mock grid generation ─────────────────────────────────────────────────────
-
-const KEYWORDS = [
-  "pizzaria em Moema",
-  "pizza artesanal São Paulo",
-  "melhor pizza Moema",
-  "restaurante pizza zona sul",
-  "pizza delivery Moema",
-];
-
-function generateGrid(keyword: string): GridCell[][] {
-  const seed = keyword.length * 7 + keyword.charCodeAt(0);
-  const grid: GridCell[][] = [];
-
-  for (let row = 0; row < 7; row++) {
-    const rowData: GridCell[] = [];
-    for (let col = 0; col < 7; col++) {
-      const distFromCenter = Math.sqrt(Math.pow(row - 3, 2) + Math.pow(col - 3, 2));
-      const base = Math.round(distFromCenter * 3.5 + ((seed * (row + 1) * (col + 1)) % 5));
-      const rank = Math.min(Math.max(1, base + Math.round(((seed % 7) - 3) * 0.5)), 20);
-      rowData.push({ rank: row === 3 && col === 3 ? 2 : rank, lat: 0, lng: 0 });
-    }
-    grid.push(rowData);
-  }
-  return grid;
-}
-
-// ─── Cell color logic ─────────────────────────────────────────────────────────
-
-function rankColor(rank: number | null): { bg: string; text: string; border: string } {
-  if (rank === null) return { bg: "#1a1f1c", text: "#5a5f5c", border: "#2a2f2c" };
-  if (rank <= 3)  return { bg: "rgba(15,110,86,0.3)",  text: "#5DCAA5", border: "rgba(93,202,165,0.4)" };
-  if (rank <= 7)  return { bg: "rgba(29,158,117,0.15)", text: "#1D9E75", border: "rgba(29,158,117,0.3)" };
-  if (rank <= 10) return { bg: "rgba(239,159,39,0.12)", text: "#EF9F27", border: "rgba(239,159,39,0.3)" };
-  if (rank <= 15) return { bg: "rgba(226,75,74,0.1)",  text: "#F09595", border: "rgba(226,75,74,0.25)" };
-  return { bg: "rgba(226,75,74,0.06)", text: "#E24B4A", border: "rgba(226,75,74,0.15)" };
-}
-
-const COL_LABELS = ["Vila Olímpia", "Itaim Bibi", "Brooklin N.", "Moema", "Brooklin S.", "Santo André", "Jabaquara"];
-const ROW_LABELS = ["Pinheiros", "Jardins", "Moema N.", "Centro", "Moema S.", "Saúde", "Cursino"];
-
-// ─── Stats ────────────────────────────────────────────────────────────────────
-
-function gridStats(grid: GridCell[][]) {
-  const ranks = grid.flat().map((c) => c.rank).filter((r): r is number => r !== null);
-  const avg = ranks.reduce((a, b) => a + b, 0) / ranks.length;
-  const top3 = ranks.filter((r) => r <= 3).length;
-  const top10 = ranks.filter((r) => r <= 10).length;
-  const out20 = ranks.filter((r) => r > 15).length;
-  return { avg: avg.toFixed(1), top3, top10, out20, total: ranks.length };
-}
-
-const IS_AGENCY_PLAN = false; // Mude para true para testar sem lock
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import {
+  KEYWORDS,
+  COL_LABELS,
+  ROW_LABELS,
+  fetchGridFromDB,
+  gridStats,
+  rankColor,
+  type GridCell,
+} from "@/lib/geo/radar-local";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function RadarLocalPage() {
+  const router = useRouter();
+  const supabase = createClient();
   const [keyword, setKeyword] = useState(KEYWORDS[0]);
   const [grid, setGrid] = useState<GridCell[][]>([]);
   const [loading, setLoading] = useState(false);
   const [showKeywordMenu, setShowKeywordMenu] = useState(false);
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
+  const [isAgency, setIsAgency] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState(true);
 
+  // Load user plan from Supabase
   useEffect(() => {
-    setLoading(true);
-    const t = setTimeout(() => {
-      setGrid(generateGrid(keyword));
-      setLoading(false);
-    }, 800);
-    return () => clearTimeout(t);
-  }, [keyword]);
+    async function checkPlan() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push("/login");
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("plan")
+          .eq("id", user.id)
+          .single();
+
+        setIsAgency(profile?.plan === "agency");
+      } catch (error) {
+        console.error("Erro ao verificar plano:", error);
+      } finally {
+        setLoadingPlan(false);
+      }
+    }
+
+    checkPlan();
+  }, []);
+
+  // Load grid data from Supabase
+  useEffect(() => {
+    async function loadGrid() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Buscar primeiro negócio do usuário
+        const { data: businesses } = await supabase
+          .from("businesses")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(1);
+
+        if (!businesses || businesses.length === 0) {
+          setLoading(false);
+          return;
+        }
+
+        const businessId = businesses[0].id;
+
+        // Carregar grid de rankings do banco de dados
+        setLoading(true);
+        const geoGrid = await fetchGridFromDB(businessId, keyword);
+        setGrid(geoGrid);
+      } catch (error) {
+        console.error("Erro ao carregar grid:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (isAgency) {
+      loadGrid();
+    }
+  }, [keyword, isAgency]);
 
   const stats = grid.length > 0 ? gridStats(grid) : null;
 
-  if (!IS_AGENCY_PLAN) {
+  if (loadingPlan) {
+    return (
+      <div className="min-h-screen bg-[#0A0F0D] flex items-center justify-center">
+        <div className="text-[#5a5f5c] flex items-center gap-2">
+          <RefreshCw className="w-4 h-4 animate-spin" />
+          Carregando...
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAgency) {
     return <RadarLocalLocked />;
   }
 
@@ -104,7 +127,28 @@ export default function RadarLocalPage() {
             </p>
           </div>
           <button
-            onClick={() => { setGrid([]); setLoading(true); setTimeout(() => { setGrid(generateGrid(keyword)); setLoading(false); }, 800); }}
+            onClick={async () => {
+              try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const { data: businesses } = await supabase
+                  .from("businesses")
+                  .select("id")
+                  .eq("user_id", user.id)
+                  .limit(1);
+
+                if (!businesses || businesses.length === 0) return;
+
+                setLoading(true);
+                const geoGrid = await fetchGridFromDB(businesses[0].id, keyword);
+                setGrid(geoGrid);
+              } catch (error) {
+                console.error("Erro ao atualizar grid:", error);
+              } finally {
+                setLoading(false);
+              }
+            }}
             disabled={loading}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1a1f1c] border border-[#2a2f2c] text-sm text-[#9a9f9c] hover:text-[#FAFBFA] transition-all disabled:opacity-60 w-fit"
           >
@@ -173,6 +217,10 @@ export default function RadarLocalPage() {
             <div className="flex items-center justify-center h-64 text-[#5a5f5c] text-sm gap-2">
               <RefreshCw className="w-4 h-4 animate-spin" />
               Verificando posição em 49 pontos geográficos...
+            </div>
+          ) : grid.length === 0 ? (
+            <div className="flex items-center justify-center h-64 text-[#5a5f5c] text-sm">
+              Nenhum dado de ranking disponível. Tente novamente em breve.
             </div>
           ) : (
             <div className="min-w-[560px]">

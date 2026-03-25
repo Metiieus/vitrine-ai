@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Star, Phone, Globe, MapPin, RefreshCw, TrendingUp, TrendingDown,
-  Eye, Search, Navigation, MousePointerClick, AlertCircle, ArrowRight,
+  Eye, Search, Navigation, MousePointerClick, ArrowRight,
   Zap, MessageSquare, FileText, Sparkles, ChevronRight, Lock,
 } from "lucide-react";
 import { ScoreGauge } from "@/components/dashboard/ScoreGauge";
@@ -78,7 +78,7 @@ function RadarChart({ data }: { data: Record<string, number> }) {
   const rings = [0.25, 0.5, 0.75, 1];
   const gridPoints = (ratio: number) =>
     RADAR_DIMS.map((_, i) => point(i, ratio))
-      .map((p, i, arr) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
+      .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
       .join(" ") + " Z";
 
   const dataPoints = RADAR_DIMS.map((d, i) => {

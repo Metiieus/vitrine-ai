@@ -1,0 +1,18 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm ci",
+  "outputDirectory": ".next",
+  "env": {
+    "CRON_SECRET": {
+      "description": "Token secreto para validar requisições de cron (gerar via: openssl rand -hex 32)",
+      "required": true
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/google-token-refresh",
+      "schedule": "0 */1 * * *"
+    }
+  ]
+}

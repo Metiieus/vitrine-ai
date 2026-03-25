@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   User,
   Building2,
   CreditCard,
   LogOut,
   Check,
-  Zap,
   Shield,
   Bell,
   Link as LinkIcon,
@@ -137,6 +136,9 @@ export default function ConfiguracoesPage() {
   const supabase = createClient();
   const [loggingOut, setLoggingOut] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [business, setBusiness] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState({
     newReview: true,
     weeklyReport: true,
@@ -144,10 +146,60 @@ export default function ConfiguracoesPage() {
     tips: true,
   });
 
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function loadData() {
+    try {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+
+      if (!authUser) {
+        router.push("/login");
+        return;
+      }
+
+      setUser(authUser);
+
+      // Buscar dados do negócio
+      const { data: businesses } = await supabase
+        .from("businesses")
+        .select("*")
+        .eq("user_id", authUser.id)
+        .limit(1);
+
+      if (businesses && businesses.length > 0) {
+        setBusiness(businesses[0]);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0A0F0D] text-[#dadedd] flex items-center justify-center">
+        <p>Carregando...</p>
+      </div>
+    );
+  }
+
+  const userEmail = user?.email || "seu-email@exemplo.com";
+  const initials = (business?.name || "?")
+    .split(" ")
+    .slice(0, 2)
+    .map((w: string) => w[0])
+    .join("")
+    .toUpperCase();
+
   async function handleLogout() {
     setLoggingOut(true);
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("/"); // Volta para home (landing page)
   }
 
   async function handleSave() {
@@ -174,9 +226,9 @@ export default function ConfiguracoesPage() {
           {/* Perfil */}
           <Section title="Perfil" icon={User}>
             <div className="grid sm:grid-cols-2 gap-4 mb-5">
-              <Field label="Nome" value="Carlos Andrade" />
-              <Field label="E-mail" value="carlos@casadapizza.com.br" type="email" />
-              <Field label="Telefone" value="(11) 99999-9999" type="tel" />
+              <Field label="Nome" value={user?.user_metadata?.name || ""} />
+              <Field label="E-mail" value={userEmail} />
+              <Field label="Telefone" value={user?.user_metadata?.phone || ""} type="tel" />
               <Field label="WhatsApp para suporte" value="" placeholder="(11) 99999-9999" type="tel" />
             </div>
             <button
@@ -190,36 +242,47 @@ export default function ConfiguracoesPage() {
 
           {/* Negócio */}
           <Section title="Negócio conectado" icon={Building2}>
-            <div className="flex items-center gap-4 p-4 bg-[rgba(29,158,117,0.05)] border border-[rgba(29,158,117,0.15)] rounded-xl mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0F6E56] to-[#5DCAA5] flex items-center justify-center text-lg font-bold text-white flex-shrink-0">
-                CD
+            {business ? (
+              <>
+                <div className="flex items-center gap-4 p-4 bg-[rgba(29,158,117,0.05)] border border-[rgba(29,158,117,0.15)] rounded-xl mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0F6E56] to-[#5DCAA5] flex items-center justify-center text-lg font-bold text-white flex-shrink-0">
+                    {initials}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-[#FAFBFA]">
+                      {business.name}
+                    </div>
+                    <div className="text-xs text-[#5a5f5c] mt-0.5">
+                      {business.category} • {business.city}, {business.state}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4 mb-5">
+                  <Field label="Nome do negócio" value={business.name || ""} />
+                  <Field label="Categoria" value={business.category || ""} />
+                  <Field label="Cidade" value={business.city || ""} />
+                  <Field label="Estado" value={business.state || ""} />
+                </div>
+                <a
+                  href="/conectar"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold outline-dashed outline-[#1D9E75] text-[#1D9E75] hover:bg-[rgba(29,158,117,0.1)] transition-colors"
+                >
+                  <LinkIcon className="w-4 h-4" />
+                  Conectar outro negócio
+                </a>
+              </>
+            ) : (
+              <div className="p-4 text-center text-[#5a5f5c]">
+                <p className="text-sm mb-3">Nenhum negócio conectado ainda</p>
+                <a
+                  href="/conectar"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1D9E75] text-white text-sm font-semibold hover:bg-[#3DB88E] transition-colors"
+                >
+                  <LinkIcon className="w-4 h-4" />
+                  Conectar Google Meu Negócio
+                </a>
               </div>
-              <div className="flex-1">
-                <div className="text-sm font-semibold text-[#FAFBFA]">
-                  Casa da Pizza
-                </div>
-                <div className="text-xs text-[#5a5f5c] mt-0.5">
-                  Restaurante · Pizzaria — Moema, São Paulo
-                </div>
-                <div className="flex items-center gap-1 mt-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#1D9E75]" />
-                  <span className="text-xs text-[#1D9E75]">
-                    Conectado ao Google Business
-                  </span>
-                </div>
-              </div>
-              <button className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-[#2a2f2c] text-[#9a9f9c] hover:text-[#FAFBFA] transition-colors">
-                <LinkIcon className="w-3 h-3" />
-                Trocar
-              </button>
-            </div>
-            <p className="text-xs text-[#5a5f5c]">
-              Para conectar outro negócio ou conta Google,{" "}
-              <a href="/conectar" className="text-[#1D9E75] hover:underline">
-                clique aqui
-              </a>
-              .
-            </p>
+            )}
           </Section>
 
           {/* Plano */}

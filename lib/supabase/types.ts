@@ -2,6 +2,8 @@ export type Plan = "free" | "essential" | "pro" | "agency";
 export type ResponseStatus = "pending" | "generated" | "published";
 export type PostStatus = "draft" | "scheduled" | "published";
 export type AiPlatform = "chatgpt" | "gemini" | "perplexity" | "ai_overviews";
+export type PaymentStatus = "pending" | "approved" | "failed" | "refunded";
+export type SubscriptionStatus = "active" | "paused" | "cancelled";
 
 export interface Database {
   public: {
@@ -12,7 +14,8 @@ export interface Database {
           name: string | null;
           email: string | null;
           plan: Plan;
-          stripe_customer_id: string | null;
+          mercadopago_customer_id: string | null;
+          mercadopago_subscription_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -20,14 +23,16 @@ export interface Database {
           name?: string | null;
           email?: string | null;
           plan?: Plan;
-          stripe_customer_id?: string | null;
+          mercadopago_customer_id?: string | null;
+          mercadopago_subscription_id?: string | null;
           created_at?: string;
         };
         Update: {
           name?: string | null;
           email?: string | null;
           plan?: Plan;
-          stripe_customer_id?: string | null;
+          mercadopago_customer_id?: string | null;
+          mercadopago_subscription_id?: string | null;
         };
       };
       businesses: {
@@ -223,6 +228,72 @@ export interface Database {
           calls?: number | null;
           direction_requests?: number | null;
           website_clicks?: number | null;
+        };
+      };
+      payments: {
+        Row: {
+          id: string;
+          user_id: string;
+          mercadopago_payment_id: string;
+          mercadopago_preference_id: string | null;
+          status: PaymentStatus;
+          amount: number;
+          plan: Plan;
+          billing_cycle: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          mercadopago_payment_id: string;
+          mercadopago_preference_id?: string | null;
+          status?: PaymentStatus;
+          amount: number;
+          plan: Plan;
+          billing_cycle?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          status?: PaymentStatus;
+          amount?: number;
+          billing_cycle?: string | null;
+          updated_at?: string;
+        };
+      };
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          mercadopago_subscription_id: string | null;
+          plan: Plan;
+          status: SubscriptionStatus;
+          current_period_start: string | null;
+          current_period_end: string | null;
+          next_billing_date: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          mercadopago_subscription_id?: string | null;
+          plan?: Plan;
+          status?: SubscriptionStatus;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          next_billing_date?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          plan?: Plan;
+          status?: SubscriptionStatus;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          next_billing_date?: string | null;
+          updated_at?: string;
         };
       };
     };

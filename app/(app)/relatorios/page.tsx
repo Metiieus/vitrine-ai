@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import {
   BarChart3,
   TrendingUp,
@@ -11,48 +14,133 @@ import {
   FileDown,
   Globe,
 } from "lucide-react";
-
-export const metadata = { title: "Relatórios" };
-
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const SCORE_HISTORY = [
-  { month: "Out", score: 48 },
-  { month: "Nov", score: 55 },
-  { month: "Dez", score: 58 },
-  { month: "Jan", score: 63 },
-  { month: "Fev", score: 68 },
-  { month: "Mar", score: 72 },
-];
-
-const INSIGHTS_30 = [
-  { icon: Search, label: "Buscas diretas", value: 1240, change: +12, prev: 1107 },
-  { icon: Eye, label: "Visualizações", value: 3420, change: +8, prev: 3167 },
-  { icon: Phone, label: "Ligações", value: 89, change: -3, prev: 92 },
-  { icon: Navigation, label: "Rotas solicitadas", value: 156, change: +22, prev: 128 },
-  { icon: MousePointerClick, label: "Cliques no site", value: 234, change: +5, prev: 223 },
-];
-
-const REVIEW_STATS = {
-  total: 847,
-  avg: 4.3,
-  responded: 824,
-  responseRate: 97,
-  byRating: [
-    { stars: 5, count: 524, pct: 62 },
-    { stars: 4, count: 186, pct: 22 },
-    { stars: 3, count: 76, pct: 9 },
-    { stars: 2, count: 38, pct: 4.5 },
-    { stars: 1, count: 23, pct: 2.5 },
-  ],
-};
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase/client";
 
 export default function RelatoriosPage() {
-  const maxScore = Math.max(...SCORE_HISTORY.map((h) => h.score));
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function loadData() {
+    try {
+      const supabase = createClient();
+
+      // Buscar usuário
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      // Buscar primeiro negócio do usuário
+      const { data: businesses } = await supabase
+        .from("businesses")
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1);
+
+      if (!businesses || businesses.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const businessId = (businesses as any)[0].id;
+
+      // Buscar auditoria
+      const { data: audits } = await supabase
+        .from("audits")
+        .select("score, period_start")
+        .eq("business_id", businessId)
+        .order("created_at", { ascending: false })
+        .limit(6);
+
+      // Buscar insights
+      const { data: insights } = await supabase
+        .from("insights")
+        .select("*")
+        .eq("business_id", businessId)
+        .order("period_end", { ascending: false })
+        .limit(1)
+        .single();
+
+      // Buscar reviews para stats
+      const { data: reviews } = await supabase
+        .from("reviews")
+        .select("rating")
+        .eq("business_id", businessId);
+
+      // Calcular stats
+      const ratingByCount = reviews?.reduce(
+        (acc: any, r: any) => {
+          acc[r.rating] = (acc[r.rating] || 0) + 1;
+          return acc;
+        },
+        {} as Record<number, number>
+      ) || {};
+
+      const avgRating =
+        reviews && reviews.length > 0
+          ? (reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length).toFixed(1)
+          : 0;
+
+      setData({
+        scoreHistory: (audits || []).reverse(),
+        insights: insights || {
+          searches: 0,
+          views: 0,
+          calls: 0,
+          direction_requests: 0,
+          website_clicks: 0,
+        },
+        reviewStats: {
+          total: reviews?.length || 0,
+          avg: avgRating,
+          byRating: [5, 4, 3, 2, 1].map((s) => ({
+            stars: s,
+            count: ratingByCount[s] || 0,
+            pct:
+              reviews && reviews.length > 0
+                ? Math.round(((ratingByCount[s] || 0) / reviews.length) * 100)
+                : 0,
+          })),
+        },
+      });
+    } catch (error) {
+      console.error("Erro ao carregar relatórios:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0A0F0D] text-[#dadedd] flex items-center justify-center">
+        <p>Carregando relatórios...</p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-[#0A0F0D] text-[#dadedd] flex items-center justify-center">
+        <p>Ainda não há dados para exibir</p>
+      </div>
+    );
+  }
+
+  const { scoreHistory, insights, reviewStats } = data;
+  const maxScore = scoreHistory.length > 0 ? Math.max(...scoreHistory.map((h: any) => h.score || 0)) : 0;
   const scoreGain =
-    SCORE_HISTORY[SCORE_HISTORY.length - 1].score - SCORE_HISTORY[0].score;
+    scoreHistory.length > 1
+      ? scoreHistory[scoreHistory.length - 1].score - scoreHistory[0].score
+      : 0;
 
   return (
     <div className="min-h-screen bg-[#0A0F0D] text-[#dadedd]">
@@ -93,12 +181,12 @@ export default function RelatoriosPage() {
 
           {/* Bar chart */}
           <div className="flex items-end gap-3 h-32">
-            {SCORE_HISTORY.map((h, i) => {
-              const isLast = i === SCORE_HISTORY.length - 1;
+            {scoreHistory.map((h: any, i: number) => {
+              const isLast = i === scoreHistory.length - 1;
               const height = `${(h.score / (maxScore + 10)) * 100}%`;
               return (
                 <div
-                  key={h.month}
+                  key={i}
                   className="flex-1 flex flex-col items-center gap-2"
                 >
                   <span className="text-xs font-semibold" style={{ color: isLast ? "#5DCAA5" : "#9a9f9c" }}>
@@ -115,7 +203,9 @@ export default function RelatoriosPage() {
                       }}
                     />
                   </div>
-                  <span className="text-xs text-[#5a5f5c]">{h.month}</span>
+                  <span className="text-xs text-[#5a5f5c]">
+                    {new Date(h.period_start).toLocaleDateString('pt-BR', { month: 'short' })}
+                  </span>
                 </div>
               );
             })}
@@ -128,9 +218,14 @@ export default function RelatoriosPage() {
             Métricas do Google Business — últimos 30 dias
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {INSIGHTS_30.map((item) => {
+            {[
+              { icon: Search, label: "Buscas diretas", value: insights?.searches || 0 },
+              { icon: Eye, label: "Visualizações", value: insights?.views || 0 },
+              { icon: Phone, label: "Ligações", value: insights?.calls || 0 },
+              { icon: Navigation, label: "Rotas solicitadas", value: insights?.direction_requests || 0 },
+              { icon: MousePointerClick, label: "Cliques no site", value: insights?.website_clicks || 0 },
+            ].map((item) => {
               const Icon = item.icon;
-              const positive = item.change >= 0;
               return (
                 <div
                   key={item.label}
@@ -140,29 +235,11 @@ export default function RelatoriosPage() {
                     <div className="w-8 h-8 rounded-lg bg-[rgba(29,158,117,0.1)] flex items-center justify-center">
                       <Icon className="w-4 h-4 text-[#1D9E75]" />
                     </div>
-                    <span
-                      className={`flex items-center gap-0.5 text-xs font-medium px-2 py-0.5 rounded-full ${
-                        positive
-                          ? "text-[#5DCAA5] bg-[rgba(93,202,165,0.1)]"
-                          : "text-[#F09595] bg-[rgba(226,75,74,0.1)]"
-                      }`}
-                    >
-                      {positive ? (
-                        <TrendingUp className="w-3 h-3" />
-                      ) : (
-                        <TrendingDown className="w-3 h-3" />
-                      )}
-                      {positive ? "+" : ""}
-                      {item.change}%
-                    </span>
                   </div>
                   <div className="text-2xl font-display font-bold text-[#FAFBFA]">
                     {item.value.toLocaleString("pt-BR")}
                   </div>
                   <div className="text-xs text-[#5a5f5c] mt-0.5">{item.label}</div>
-                  <div className="text-[11px] text-[#3a3f3c] mt-1">
-                    Mês anterior: {item.prev.toLocaleString("pt-BR")}
-                  </div>
                 </div>
               );
             })}
@@ -178,14 +255,14 @@ export default function RelatoriosPage() {
             <div className="flex items-center gap-4 mb-5">
               <div className="text-center">
                 <div className="text-4xl font-display font-bold text-[#EF9F27]">
-                  {REVIEW_STATS.avg}
+                  {reviewStats.avg}
                 </div>
                 <div className="flex justify-center mt-1">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star
                       key={i}
                       className={`w-3.5 h-3.5 ${
-                        i < Math.floor(REVIEW_STATS.avg)
+                        i < Math.floor(parseFloat(reviewStats.avg))
                           ? "fill-[#EF9F27] text-[#EF9F27]"
                           : "text-[#2a2f2c]"
                       }`}
@@ -193,11 +270,11 @@ export default function RelatoriosPage() {
                   ))}
                 </div>
                 <div className="text-xs text-[#5a5f5c] mt-1">
-                  {REVIEW_STATS.total.toLocaleString("pt-BR")} avaliações
+                  {reviewStats.total.toLocaleString("pt-BR")} avaliações
                 </div>
               </div>
               <div className="flex-1">
-                {REVIEW_STATS.byRating.map((r) => (
+                {reviewStats.byRating.map((r: any) => (
                   <div key={r.stars} className="flex items-center gap-2 mb-1.5">
                     <span className="text-xs text-[#5a5f5c] w-3">{r.stars}</span>
                     <Star className="w-3 h-3 fill-[#EF9F27] text-[#EF9F27]" />
@@ -217,16 +294,16 @@ export default function RelatoriosPage() {
             <div className="flex items-center gap-3 p-3 rounded-xl bg-[rgba(29,158,117,0.05)] border border-[rgba(29,158,117,0.1)]">
               <div>
                 <div className="text-xl font-display font-bold text-[#1D9E75]">
-                  {REVIEW_STATS.responseRate}%
+                  {reviewStats.total > 0 ? Math.round((reviewStats.byRating.reduce((sum: number, r: any) => sum + r.count, 0) / reviewStats.total) * 100) : 0}%
                 </div>
                 <div className="text-xs text-[#5a5f5c]">Taxa de resposta</div>
               </div>
               <div className="w-px h-8 bg-[#2a2f2c]" />
               <div>
                 <div className="text-xl font-display font-bold text-[#FAFBFA]">
-                  {REVIEW_STATS.responded.toLocaleString("pt-BR")}
+                  {reviewStats.total.toLocaleString("pt-BR")}
                 </div>
-                <div className="text-xs text-[#5a5f5c]">Respondidas</div>
+                <div className="text-xs text-[#5a5f5c]">Total de reviews</div>
               </div>
             </div>
           </div>

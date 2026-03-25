@@ -3,6 +3,8 @@
  *
  * Busca métricas de desempenho do Google Business (via Performance API)
  * e salva na tabela `insights`.
+ * 
+ * ✅ Valida token Google antes de usar
  */
 
 export const dynamic = "force-dynamic";
@@ -11,8 +13,11 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getGoogleFetch } from "@/lib/google/client";
 import { getInsightsSummary } from "@/lib/google/business";
+import { ensureTokenValid } from "@/lib/google/token-refresh";
+import { internalError, unauthorizedError } from "@/lib/security";
 
 export async function GET(request: NextRequest) {
+  const requestId = crypto.randomUUID();
   const { searchParams } = request.nextUrl;
   const businessId = searchParams.get("businessId");
   const days = Math.min(Number(searchParams.get("days") ?? 30), 90);
@@ -36,30 +41,43 @@ export async function GET(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (!user) return unauthorizedError(requestId);
 
-  const adminSupabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { cookies: { getAll: () => [], setAll: () => {} } }
-  );
-
-  const { data: business } = await adminSupabase
-    .from("businesses")
-    .select("id, google_account_id, google_location_id, user_id")
-    .eq("id", businessId)
-    .eq("user_id", user.id)
-    .single();
-
-  if (!business) {
-    return NextResponse.json({ error: "Negócio não encontrado" }, { status: 404 });
-  }
-
-  if (!business.google_account_id || !business.google_location_id) {
-    return NextResponse.json({ error: "Negócio sem conexão Google" }, { status: 422 });
+  // ✅ NOVO: Validar que token Google NÃO está expirado
+  const tokenCheck = await ensureTokenValid(user.id);
+  if (!tokenCheck.valid) {
+    console.warn(
+      `[Insights] Token Google inválido para user ${user.id}:`,
+      tokenCheck.error
+    );
+    return internalError(
+      new Error("Google token expired or unavailable"),
+      requestId
+    );
   }
 
   try {
+    const adminSupabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { cookies: { getAll: () => [], setAll: () => {} } }
+    );
+
+    const { data: business } = await adminSupabase
+      .from("businesses")
+      .select("id, google_account_id, google_location_id, user_id")
+      .eq("id", businessId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (!business) {
+      return NextResponse.json({ error: "Negócio não encontrado" }, { status: 404 });
+    }
+
+    if (!business.google_account_id || !business.google_location_id) {
+      return NextResponse.json({ error: "Negócio sem conexão Google" }, { status: 422 });
+    }
+
     const gFetch = await getGoogleFetch(user.id);
     const locationName = `${business.google_account_id}/locations/${business.google_location_id}`;
 
@@ -86,6 +104,6 @@ export async function GET(request: NextRequest) {
     }
 
     console.error("GET /api/google/insights error:", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return internalError(new Error(message), requestId);
   }
 }

@@ -4,6 +4,8 @@
  *
  * POST /api/google/locations
  *   → Salva o negócio selecionado no Supabase (cria/atualiza em `businesses`)
+ * 
+ * ✅ Valida token Google antes de usar
  */
 
 export const dynamic = "force-dynamic";
@@ -12,6 +14,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getGoogleFetch } from "@/lib/google/client";
 import { listLocations, listAccounts } from "@/lib/google/business";
+import { ensureTokenValid } from "@/lib/google/token-refresh";
+import { internalError, unauthorizedError } from "@/lib/security";
 
 async function getUser(request: NextRequest) {
   const supabase = createServerClient(
@@ -33,12 +37,26 @@ async function getUser(request: NextRequest) {
 // ── GET: listar locations ────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
+  const requestId = crypto.randomUUID();
   const user = await getUser(request);
   if (!user) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+    return unauthorizedError(requestId);
   }
 
   try {
+    // ✅ NOVO: Validar que token Google NÃO está expirado
+    const tokenCheck = await ensureTokenValid(user.id);
+    if (!tokenCheck.valid) {
+      console.warn(
+        `[Locations] Token Google inválido para user ${user.id}:`,
+        tokenCheck.error
+      );
+      return internalError(
+        new Error("Google token expired or unavailable"),
+        requestId
+      );
+    }
+
     const gFetch = await getGoogleFetch(user.id);
 
     // Parâmetro ?account=accounts%2F12345 (opcional — usa o 1º se não informado)

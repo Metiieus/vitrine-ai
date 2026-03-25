@@ -24,7 +24,8 @@
       "Bash(npm run:*)",
       "Bash(ls:*)",
       "Bash(ls /c/Users/M²/Documents/vitrine-ai/app/\\\\\\(marketing\\\\\\)/)",
-      "Bash(ls /c/Users/M²/Documents/vitrine-ai/app/\\\\\\(app\\\\\\)/reviews/)"
+      "Bash(ls /c/Users/M²/Documents/vitrine-ai/app/\\\\\\(app\\\\\\)/reviews/)",
+      "Bash(grep -r @google/generative-ai /c/Users/M²/Documents/vitrine-ai --include=*.json)"
     ]
   }
 }

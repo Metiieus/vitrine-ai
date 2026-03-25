@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { CSP_HEADERS } from "@/lib/security";
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -31,8 +32,38 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // ✅ ADICIONAR SECURITY HEADERS GLOBAIS
+  // Copiar headers da resposta Supabase
+  const secureResponse = supabaseResponse;
+  
+  // Anti-clickjacking
+  secureResponse.headers.set("X-Frame-Options", "DENY");
+  
+  // Previne MIME type sniffing
+  secureResponse.headers.set("X-Content-Type-Options", "nosniff");
+  
+  // Legacy XSS protection
+  secureResponse.headers.set("X-XSS-Protection", "1; mode=block");
+  
+  // Referrer policy (não vazar URLs)
+  secureResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  
+  // Permissões de features perigosas
+  secureResponse.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), payments=()"
+  );
+  
+  // SameSite cookies por padrão
+  secureResponse.headers.set("Set-Cookie", `SameSite=Strict; Secure`);
+
+  // ✅ CONTENT SECURITY POLICY (rígida)
+  if (process.env.NODE_ENV === "production") {
+    secureResponse.headers.set("Content-Security-Policy", CSP_HEADERS["Content-Security-Policy"]);
+  }
+
   // Rotas protegidas — exigem autenticação
-  const protectedPaths = ["/dashboard", "/auditoria", "/reviews", "/posts", "/geo", "/relatorios", "/configuracoes"];
+  const protectedPaths = ["/dashboard", "/auditoria", "/reviews", "/posts", "/geo", "/relatorios", "/configuracoes", "/conectar"];
   const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
 
   if (isProtected && !user) {
@@ -49,7 +80,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(dashboardUrl);
   }
 
-  return supabaseResponse;
+  return secureResponse;
 }
 
 export const config = {

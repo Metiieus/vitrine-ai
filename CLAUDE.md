@@ -84,7 +84,7 @@ Backend:      Supabase (Auth, Postgres, Edge Functions, Storage) — free tier
 Auth:         Supabase Auth com OAuth Google (para conectar Google Business Profile)
 IA:           Google Gemini API (free tier — Gemini 2.0 Flash, 15 req/min)
 Google:       Google Business Profile API (reviews, posts, insights, locations) — 100% gratuita
-Pagamento:    AbacatePay (Pix Automático + cartão) ou Stripe
+Pagamento:    Mercado Pago (Pix, boleto, cartão, débito) — 100% gratuito para MVP
 Jobs/Cron:    Vercel Cron ou Supabase pg_cron
 Email:        Resend (free tier: 3k emails/mês)
 ```
@@ -381,7 +381,7 @@ Agências de marketing local revendem com comissão de 20-30%.
 ### Semana 4: GEO + Lançamento
 - [ ] Monitor GEO via Gemini API (consultar e verificar menções)
 - [ ] Página app/(app)/geo com relatório visual
-- [ ] Checkout com AbacatePay ou Stripe
+- [ ] Checkout com Mercado Pago ✅ (já implementado)
 - [ ] Onboarding flow (conectar Google → selecionar negócio → primeira auditoria)
 - [ ] Lançar para 10 clientes beta (trial 14 dias)
 
@@ -421,9 +421,10 @@ GEMINI_API_KEY=
 # Free tier: 15 requests/min no Gemini 2.0 Flash
 # Não precisa de cartão de crédito
 
-# Pagamento (adicionar quando lançar)
-# ABACATEPAY_API_KEY=
-# ou STRIPE_SECRET_KEY=
+# Pagamento (Mercado Pago — já implementado)
+MERCADOPAGO_ACCESS_TOKEN=      # Gerar em: https://www.mercadopago.com/developers/pt_BR
+NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY=
+MERCADOPAGO_WEBHOOK_TOKEN=
 
 # Email (adicionar quando lançar)
 # RESEND_API_KEY=
