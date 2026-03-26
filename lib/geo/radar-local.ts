@@ -44,7 +44,7 @@ export async function fetchGridFromDB(
   for (let row = 0; row < 7; row++) {
     const rowCells: GridCell[] = [];
     for (let col = 0; col < 7; col++) {
-      const ranking = rankings?.find((r) => r.grid_row === row && r.grid_col === col);
+      const ranking = (rankings as any)?.find((r: any) => r.grid_row === row && r.grid_col === col);
       rowCells.push({
         rank: ranking?.rank || null,
         lat: ranking?.latitude ? Number(ranking.latitude) : 0,
@@ -94,9 +94,9 @@ export function gridStats(grid: GridCell[][]) {
  */
 export function rankColor(rank: number | null): { bg: string; text: string; border: string } {
   if (rank === null) return { bg: "#1a1f1c", text: "#5a5f5c", border: "#2a2f2c" };
-  if (rank <= 3)  return { bg: "rgba(15,110,86,0.3)",  text: "#5DCAA5", border: "rgba(93,202,165,0.4)" };
-  if (rank <= 7)  return { bg: "rgba(29,158,117,0.15)", text: "#1D9E75", border: "rgba(29,158,117,0.3)" };
+  if (rank <= 3) return { bg: "rgba(15,110,86,0.3)", text: "#5DCAA5", border: "rgba(93,202,165,0.4)" };
+  if (rank <= 7) return { bg: "rgba(29,158,117,0.15)", text: "#1D9E75", border: "rgba(29,158,117,0.3)" };
   if (rank <= 10) return { bg: "rgba(239,159,39,0.12)", text: "#EF9F27", border: "rgba(239,159,39,0.3)" };
-  if (rank <= 15) return { bg: "rgba(226,75,74,0.1)",  text: "#F09595", border: "rgba(226,75,74,0.25)" };
+  if (rank <= 15) return { bg: "rgba(226,75,74,0.1)", text: "#F09595", border: "rgba(226,75,74,0.25)" };
   return { bg: "rgba(226,75,74,0.06)", text: "#E24B4A", border: "rgba(226,75,74,0.15)" };
 }

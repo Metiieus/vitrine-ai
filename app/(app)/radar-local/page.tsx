@@ -44,7 +44,7 @@ export default function RadarLocalPage() {
           .eq("id", user.id)
           .single();
 
-        setIsAgency(profile?.plan === "agency");
+        setIsAgency((profile as any)?.plan === "agency");
       } catch (error) {
         console.error("Erro ao verificar plano:", error);
       } finally {
@@ -74,7 +74,7 @@ export default function RadarLocalPage() {
           return;
         }
 
-        const businessId = businesses[0].id;
+        const businessId = (businesses as any)[0].id;
 
         // Carregar grid de rankings do banco de dados
         setLoading(true);
@@ -141,7 +141,7 @@ export default function RadarLocalPage() {
                 if (!businesses || businesses.length === 0) return;
 
                 setLoading(true);
-                const geoGrid = await fetchGridFromDB(businesses[0].id, keyword);
+                const geoGrid = await fetchGridFromDB((businesses as any)[0].id, keyword);
                 setGrid(geoGrid);
               } catch (error) {
                 console.error("Erro ao atualizar grid:", error);
