@@ -1,4 +1,4 @@
-import { NextResponse } from "next/response";
+import { NextResponse } from "next/server";
 import { getUser, createSupabaseServer } from "@/lib/supabase/queries";
 import { runBusinessAudit } from "@/lib/google/audit";
 import { AuditTask, AuditDetails } from "@/lib/supabase/types";
