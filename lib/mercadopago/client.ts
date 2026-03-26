@@ -111,6 +111,81 @@ export async function getPaymentInfo(paymentId: string) {
 }
 
 /**
+ * Criar um plano de assinatura no Mercado Pago
+ */
+export async function createSubscriptionPlan(params: {
+  reason: string;
+  amount: number;
+  frequency: number;
+  frequency_type: "months" | "days";
+}) {
+  const url = "https://api.mercadopago.com/preapproval_plan";
+
+  const body = {
+    reason: params.reason,
+    auto_recurring: {
+      frequency: params.frequency,
+      frequency_type: params.frequency_type,
+      transaction_amount: params.amount / 100,
+      currency_id: "BRL",
+    },
+    back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+  };
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`MP Plan Error: ${error.message || "Unknown"}`);
+  }
+
+  return await response.json();
+}
+
+/**
+ * Criar uma pré-aprovação (assinatura real do usuário)
+ */
+export async function createPreapproval(params: {
+  planId: string;
+  payerEmail: string;
+  cardTokenId?: string;
+  status?: "authorized" | "paused";
+}) {
+  const url = "https://api.mercadopago.com/preapproval";
+
+  const body = {
+    preapproval_plan_id: params.planId,
+    payer_email: params.payerEmail,
+    card_token_id: params.cardTokenId,
+    status: params.status || "authorized",
+    back_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/mercadopago/success`,
+  };
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`MP Preapproval Error: ${error.message || "Unknown"}`);
+  }
+
+  return await response.json();
+}
+
+/**
  * Validar assinatura do webhook
  */
 export function validateWebhookSignature(
@@ -135,7 +210,7 @@ export type PaymentStatus = "approved" | "pending" | "rejected" | "cancelled";
 
 export interface WebhookPayload {
   id: string;
-  action: string; // "payment.created", "payment.updated"
+  action: string; // "payment.created", "payment.updated", "subscription.created"
   api_version: string;
   data: {
     id: string;

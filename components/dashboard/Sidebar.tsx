@@ -21,14 +21,14 @@ import {
 import { cn } from "@/lib/utils/cn";
 
 const NAV_ITEMS = [
-  { href: "/dashboard",     label: "Dashboard",      icon: LayoutDashboard, badge: undefined, lock: undefined },
-  { href: "/auditoria",    label: "Auditoria",      icon: ClipboardCheck,  badge: undefined, lock: undefined },
-  { href: "/reviews",      label: "Reviews",        icon: Star,            badge: undefined, lock: undefined },
-  { href: "/posts",        label: "Google Posts",   icon: FileText,        badge: undefined, lock: undefined },
-  { href: "/geo",          label: "Monitor GEO",    icon: Globe,           badge: "NOVO",    lock: undefined },
-  { href: "/radar-local",  label: "RadarLocal",     icon: MapPin,          badge: undefined, lock: "agency"  },
-  { href: "/relatorios",   label: "Relatórios",     icon: BarChart3,       badge: undefined, lock: undefined },
-  { href: "/configuracoes",label: "Configurações",  icon: Settings,        badge: undefined, lock: undefined },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, badge: undefined, lock: undefined },
+  { href: "/auditoria", label: "Auditoria", icon: ClipboardCheck, badge: undefined, lock: undefined },
+  { href: "/reviews", label: "Reviews", icon: Star, badge: undefined, lock: undefined },
+  { href: "/posts", label: "Google Posts", icon: FileText, badge: undefined, lock: undefined },
+  { href: "/geo", label: "Monitor GEO", icon: Globe, badge: "NOVO", lock: undefined },
+  { href: "/radar-local", label: "RadarLocal", icon: MapPin, badge: undefined, lock: "agency" },
+  { href: "/relatorios", label: "Relatórios", icon: BarChart3, badge: undefined, lock: undefined },
+  { href: "/configuracoes", label: "Configurações", icon: Settings, badge: undefined, lock: undefined },
 ];
 
 const PLAN_LABELS: Record<string, { label: string; color: string }> = {
@@ -73,7 +73,7 @@ export function Sidebar({ userName, userEmail, plan }: SidebarProps) {
       {/* Mobile overlay */}
       {open && (
         <div
-          className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          className="md:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md transition-opacity duration-300"
           onClick={() => setOpen(false)}
         />
       )}
@@ -81,7 +81,7 @@ export function Sidebar({ userName, userEmail, plan }: SidebarProps) {
       {/* Sidebar panel */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-full w-60 flex flex-col bg-[#0d1210] border-r border-[#2a2f2c] transition-transform duration-300",
+          "fixed top-0 left-0 z-[60] h-full w-60 flex flex-col bg-[#111614] border-r border-[#2a2f2c] transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none",
           "md:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}

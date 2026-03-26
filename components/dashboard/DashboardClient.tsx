@@ -261,7 +261,7 @@ export function DashboardClient({ business, latestAudit, pendingReviewsCount }: 
             </div>
 
             <div className="max-w-[1200px] mx-auto px-5 py-6 space-y-6">
-                <div className="grid lg:grid-cols-[320px_1fr] gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
                     <div className="bg-[#1a1f1c] border border-[#2a2f2c] rounded-2xl p-5">
                         <div className="flex items-center justify-between mb-4">
                             <div>
@@ -328,7 +328,7 @@ export function DashboardClient({ business, latestAudit, pendingReviewsCount }: 
                     </div>
                 </div>
 
-                <div className="grid lg:grid-cols-[1fr_340px] gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
                     <div className="bg-[#1a1f1c] border border-[#2a2f2c] rounded-2xl p-5">
                         <div className="flex items-center justify-between mb-5">
                             <div>
@@ -337,7 +337,7 @@ export function DashboardClient({ business, latestAudit, pendingReviewsCount }: 
                             </div>
                             <Link href="/relatorios" className="text-xs text-[#1D9E75] hover:text-[#5DCAA5] flex items-center gap-1 transition-colors">Relatório completo <ArrowRight className="w-3 h-3" /></Link>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 sm:grid-cols-3 gap-3">
                             {[
                                 { icon: Search, label: "Buscas diretas", ...ins.searches },
                                 { icon: Eye, label: "Visualizações", ...ins.views },
@@ -381,16 +381,16 @@ export function DashboardClient({ business, latestAudit, pendingReviewsCount }: 
 
                 <div className="relative overflow-hidden rounded-2xl border border-[rgba(239,159,39,0.25)] bg-gradient-to-r from-[#0d1210] to-[#0a0f0d] p-5">
                     <div aria-hidden className="absolute right-0 top-0 w-64 h-full opacity-10" style={{ background: "radial-gradient(ellipse at right center, #EF9F27 0%, transparent 70%)" }} />
-                    <div className="relative flex items-center gap-4">
+                    <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
                         <div className="w-12 h-12 rounded-xl bg-[rgba(239,159,39,0.12)] border border-[rgba(239,159,39,0.2)] flex items-center justify-center flex-shrink-0"><MapPin className="w-6 h-6 text-[#EF9F27]" /></div>
                         <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <h3 className="text-[15px] font-semibold text-[#FAFBFA]">RadarLocal — Heat Map de Ranking</h3>
                                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[rgba(239,159,39,0.15)] text-[#EF9F27] uppercase tracking-wider">Agência</span>
                             </div>
                             <p className="text-xs text-[#5a5f5c]">Veja exatamente onde você aparece no Google Maps por bairro. Heat map interativo com 49 pontos geográficos.</p>
                         </div>
-                        <Link href="/configuracoes" className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[rgba(239,159,39,0.12)] border border-[rgba(239,159,39,0.25)] text-[#EF9F27] text-xs font-semibold hover:bg-[rgba(239,159,39,0.2)] transition-colors"><Lock className="w-3.5 h-3.5" />Fazer upgrade</Link>
+                        <Link href="/configuracoes" className="flex-shrink-0 w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[rgba(239,159,39,0.12)] border border-[rgba(239,159,39,0.25)] text-[#EF9F27] text-xs font-semibold hover:bg-[rgba(239,159,39,0.2)] transition-colors"><Lock className="w-3.5 h-3.5" />Fazer upgrade</Link>
                     </div>
                 </div>
 

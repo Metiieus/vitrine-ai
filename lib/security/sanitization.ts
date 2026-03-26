@@ -135,11 +135,11 @@ export const CSP_HEADERS = {
   "Content-Security-Policy":
     // Não permita eval, scripts inline, etc
     "default-src 'self'; " +
-    "script-src 'self' 'wasm-unsafe-eval'; " + // wasm-unsafe-eval para Next.js
+    "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; " + // unsafe-inline para Next.js
     "style-src 'self' 'unsafe-inline'; " + // unsafe-inline para Tailwind
     "img-src 'self' data: https:; " +
     "font-src 'self' data:; " +
-    "connect-src 'self' https://api.mercadopago.com https://api.supabase.co https://www.google.com; " +
+    "connect-src 'self' https://*.supabase.co https://api.mercadopago.com https://www.google.com; " +
     "frame-ancestors 'none'; " +
     "base-uri 'self'; " +
     "form-action 'self';",

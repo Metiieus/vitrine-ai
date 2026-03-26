@@ -223,58 +223,60 @@ export default function RadarLocalPage() {
               Nenhum dado de ranking disponível. Tente novamente em breve.
             </div>
           ) : (
-            <div className="min-w-[560px]">
-              <div className="grid gap-1.5 mb-1.5" style={{ gridTemplateColumns: "80px repeat(7, 1fr)" }}>
-                <div />
-                {COL_LABELS.map((l) => (
-                  <div key={l} className="text-[9px] text-[#5a5f5c] text-center truncate px-1">{l}</div>
+            <div className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-[#2a2f2c] scrollbar-track-transparent">
+              <div className="min-w-[700px] md:min-w-0">
+                <div className="grid gap-1.5 mb-1.5" style={{ gridTemplateColumns: "100px repeat(7, 1fr)" }}>
+                  <div />
+                  {COL_LABELS.map((l) => (
+                    <div key={l} className="text-[10px] md:text-[11px] text-[#5a5f5c] text-center truncate px-1 font-medium">{l}</div>
+                  ))}
+                </div>
+
+                {grid.map((row, ri) => (
+                  <div key={ri} className="grid gap-1.5 mb-1.5" style={{ gridTemplateColumns: "100px repeat(7, 1fr)" }}>
+                    <div className="flex items-center justify-end pr-3 text-[10px] md:text-[11px] text-[#5a5f5c] text-right font-medium">
+                      {ROW_LABELS[ri]}
+                    </div>
+                    {row.map((cell, ci) => {
+                      const isCenter = ri === 3 && ci === 3;
+                      const isHovered = hoveredCell?.row === ri && hoveredCell?.col === ci;
+                      const c = rankColor(cell.rank);
+                      return (
+                        <div
+                          key={ci}
+                          onMouseEnter={() => setHoveredCell({ row: ri, col: ci })}
+                          onMouseLeave={() => setHoveredCell(null)}
+                          className="relative aspect-square rounded-lg flex items-center justify-center cursor-default transition-all duration-150"
+                          style={{
+                            background: c.bg,
+                            border: `1.5px solid ${isCenter ? "#1D9E75" : isHovered ? c.text : c.border}`,
+                            transform: isHovered || isCenter ? "scale(1.1)" : "scale(1)",
+                            zIndex: isHovered || isCenter ? 10 : 1,
+                            boxShadow: isCenter ? `0 0 12px rgba(29,158,117,0.4)` : isHovered ? `0 0 8px ${c.text}44` : "none",
+                          }}
+                        >
+                          {isCenter && (
+                            <div className="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full bg-[#1D9E75] border border-[#0A0F0D]" />
+                          )}
+                          <span className="text-[11px] font-bold" style={{ color: c.text }}>
+                            {cell.rank !== null ? `#${cell.rank}` : "–"}
+                          </span>
+                          {isHovered && (
+                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 bg-[#0d1210] border border-[#2a2f2c] rounded-lg px-3 py-2 shadow-xl whitespace-nowrap pointer-events-none">
+                              <div className="text-xs font-semibold text-[#FAFBFA]">{COL_LABELS[ci]}</div>
+                              <div className="text-[11px] text-[#5a5f5c]">{ROW_LABELS[ri]}</div>
+                              <div className="text-xs mt-1" style={{ color: c.text }}>
+                                {cell.rank !== null ? `Posição #${cell.rank}` : "Sem dados"}
+                                {isCenter && " (seu negócio)"}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 ))}
               </div>
-
-              {grid.map((row, ri) => (
-                <div key={ri} className="grid gap-1.5 mb-1.5" style={{ gridTemplateColumns: "80px repeat(7, 1fr)" }}>
-                  <div className="flex items-center justify-end pr-2 text-[9px] text-[#5a5f5c] text-right">
-                    {ROW_LABELS[ri]}
-                  </div>
-                  {row.map((cell, ci) => {
-                    const isCenter = ri === 3 && ci === 3;
-                    const isHovered = hoveredCell?.row === ri && hoveredCell?.col === ci;
-                    const c = rankColor(cell.rank);
-                    return (
-                      <div
-                        key={ci}
-                        onMouseEnter={() => setHoveredCell({ row: ri, col: ci })}
-                        onMouseLeave={() => setHoveredCell(null)}
-                        className="relative aspect-square rounded-lg flex items-center justify-center cursor-default transition-all duration-150"
-                        style={{
-                          background: c.bg,
-                          border: `1.5px solid ${isCenter ? "#1D9E75" : isHovered ? c.text : c.border}`,
-                          transform: isHovered || isCenter ? "scale(1.1)" : "scale(1)",
-                          zIndex: isHovered || isCenter ? 10 : 1,
-                          boxShadow: isCenter ? `0 0 12px rgba(29,158,117,0.4)` : isHovered ? `0 0 8px ${c.text}44` : "none",
-                        }}
-                      >
-                        {isCenter && (
-                          <div className="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full bg-[#1D9E75] border border-[#0A0F0D]" />
-                        )}
-                        <span className="text-[11px] font-bold" style={{ color: c.text }}>
-                          {cell.rank !== null ? `#${cell.rank}` : "–"}
-                        </span>
-                        {isHovered && (
-                          <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 bg-[#0d1210] border border-[#2a2f2c] rounded-lg px-3 py-2 shadow-xl whitespace-nowrap pointer-events-none">
-                            <div className="text-xs font-semibold text-[#FAFBFA]">{COL_LABELS[ci]}</div>
-                            <div className="text-[11px] text-[#5a5f5c]">{ROW_LABELS[ri]}</div>
-                            <div className="text-xs mt-1" style={{ color: c.text }}>
-                              {cell.rank !== null ? `Posição #${cell.rank}` : "Sem dados"}
-                              {isCenter && " (seu negócio)"}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
             </div>
           )}
 

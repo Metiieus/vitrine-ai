@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [tab, setTab] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [businessUrl, setBusinessUrl] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -34,11 +35,23 @@ export default function LoginPage() {
         router.refresh();
       }
     } else {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            onboarding_business_url: businessUrl,
+          },
+        },
+      });
       if (error) {
         setError(error.message);
+      } else if (data.user && data.session) {
+        // Se já estiver logado (auto-confirm on), vai pro dashboard
+        router.push("/dashboard");
+        router.refresh();
       } else {
-        setSuccess("Conta criada! Verifique seu e-mail para confirmar.");
+        setSuccess("Conta criada! Verifique seu e-mail para confirmar seu cadastro.");
       }
     }
     setLoading(false);
@@ -46,6 +59,13 @@ export default function LoginPage() {
 
   async function handleGoogle() {
     setGoogleLoading(true);
+
+    // Se houver uma URL de negócio, salvar temporariamente em um cookie
+    // para que o callback da API possa recuperar e salvar no perfil do usuário
+    if (businessUrl) {
+      document.cookie = `sb_onboarding_business_url=${encodeURIComponent(businessUrl)}; path=/; max-age=3600; SameSite=Lax`;
+    }
+
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${location.origin}/api/auth/callback` },
@@ -91,11 +111,10 @@ export default function LoginPage() {
               <button
                 key={t}
                 onClick={() => { setTab(t); setError(""); setSuccess(""); }}
-                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-                  tab === t
-                    ? "bg-[#1D9E75] text-white"
-                    : "text-[#5a5f5c] hover:text-[#9a9f9c]"
-                }`}
+                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${tab === t
+                  ? "bg-[#1D9E75] text-white"
+                  : "text-[#5a5f5c] hover:text-[#9a9f9c]"
+                  }`}
               >
                 {t === "login" ? "Entrar" : "Criar conta"}
               </button>
@@ -166,6 +185,26 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {tab === "signup" && (
+              <div>
+                <label className="block text-xs text-[#9a9f9c] mb-1.5 font-medium">
+                  Link do seu negócio no Google Maps (opcional)
+                </label>
+                <div className="relative">
+                  <input
+                    type="url"
+                    value={businessUrl}
+                    onChange={(e) => setBusinessUrl(e.target.value)}
+                    placeholder="https://maps.google.com/..."
+                    className="w-full px-4 py-2.5 bg-[#0d1210] border border-[#2a2f2c] rounded-xl text-sm text-[#FAFBFA] placeholder-[#3a3f3c] focus:outline-none focus:border-[#1D9E75] transition-colors"
+                  />
+                </div>
+                <p className="text-[10px] text-[#5a5f5c] mt-1.5 px-1 leading-tight">
+                  Isso ajuda a configurar seu dashboard mais rápido.
+                </p>
+              </div>
+            )}
+
             {error && (
               <p className="text-xs text-[#F09595] bg-[rgba(226,75,74,0.1)] border border-[rgba(226,75,74,0.2)] rounded-lg px-3 py-2">
                 {error}
@@ -190,7 +229,7 @@ export default function LoginPage() {
 
         <p className="text-center text-xs text-[#5a5f5c] mt-4">
           Ao continuar, você concorda com nossos{" "}
-          <Link href="/" className="text-[#1D9E75] hover:underline">
+          <Link href="/termos" className="text-[#1D9E75] hover:underline">
             Termos de Uso
           </Link>
         </p>

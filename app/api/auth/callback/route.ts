@@ -38,11 +38,25 @@ export async function GET(request: NextRequest) {
     }
   );
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
     console.error("Supabase OAuth callback error:", error.message);
     return NextResponse.redirect(`${APP_URL}/login?error=oauth_falhou`);
+  }
+
+  // 🔄 RECUPERAR BUSINESS URL DO COOKIE SE EXISTIR
+  const businessUrlCookie = request.cookies.get("sb_onboarding_business_url")?.value;
+  if (businessUrlCookie && session?.user) {
+    const businessUrl = decodeURIComponent(businessUrlCookie);
+
+    // Atualiza metadados do usuário
+    await supabase.auth.updateUser({
+      data: { onboarding_business_url: businessUrl }
+    });
+
+    // Limpa o cookie
+    response.cookies.delete("sb_onboarding_business_url");
   }
 
   return response;

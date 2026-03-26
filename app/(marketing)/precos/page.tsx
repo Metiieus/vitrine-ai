@@ -110,11 +110,10 @@ export default function PricingPage() {
           {plans.map((plan) => (
             <Card
               key={plan.id}
-              className={`relative p-8 flex flex-col transition-all ${
-                plan.highlighted
+              className={`relative p-8 flex flex-col transition-all ${plan.highlighted
                   ? 'ring-2 ring-[#1D9E75] shadow-2xl transform scale-105'
                   : 'border'
-              }`}
+                }`}
             >
               {plan.highlighted && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-[#1D9E75] text-white px-4 py-1 rounded-full text-sm font-bold">
@@ -142,14 +141,12 @@ export default function PricingPage() {
                     return (
                       <div
                         key={feature}
-                        className={`flex items-start gap-3 text-sm ${
-                          isIncluded ? 'text-gray-700' : 'text-gray-400'
-                        }`}
+                        className={`flex items-start gap-3 text-sm ${isIncluded ? 'text-gray-700' : 'text-gray-400'
+                          }`}
                       >
                         <span
-                          className={`flex-shrink-0 font-bold ${
-                            isIncluded ? 'text-[#1D9E75]' : 'text-gray-300'
-                          }`}
+                          className={`flex-shrink-0 font-bold ${isIncluded ? 'text-[#1D9E75]' : 'text-gray-300'
+                            }`}
                         >
                           {isIncluded ? '✓' : '✗'}
                         </span>
@@ -208,9 +205,14 @@ export default function PricingPage() {
       {/* Footer */}
       <div className="bg-white border-t border-gray-200 py-8">
         <div className="max-w-6xl mx-auto px-4 text-center text-gray-600 text-sm">
-          <p>
-            Vitrine.ai © 2024. Feito com ❤️ para pequenos negócios. Seguro, rápido e confiável.
+          <p className="mb-2">
+            Vitrine.ai © 2026. Feito com ❤️ para pequenos negócios. Seguro, rápido e confiável.
           </p>
+          <div className="flex justify-center gap-4 text-xs font-medium">
+            <a href="/termos" className="hover:text-[#1D9E75] transition-colors">Termos de Uso</a>
+            <span className="text-gray-300">|</span>
+            <a href="/privacidade" className="hover:text-[#1D9E75] transition-colors">Privacidade</a>
+          </div>
         </div>
       </div>
     </div>

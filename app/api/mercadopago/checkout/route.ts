@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { createPaymentPreference } from "@/lib/mercadopago/client";
+import { createPaymentPreference, createPreapproval } from "@/lib/mercadopago/client";
 import {
   checkRateLimit,
   validateQueryParams,
@@ -93,23 +93,48 @@ export async function POST(request: NextRequest) {
       return internalError(new Error("Profile not found"), requestId);
     }
 
-    // ✅ 5. CRIAR PREFERÊNCIA DE PAGAMENTO
-    const preference = await createPaymentPreference({
-      userId: user.id,
-      plan,
-      email: profile.email || user.email!,
-      fullName: profile.name,
+    // ✅ 5. CRIAR ASSINATURA RECORRENTE (PREAPPROVAL)
+    // Nota: Em produção, o planId deve vir de variáveis de ambiente configuradas via script de setup
+    const planIds: Record<string, string | undefined> = {
+      essential: process.env.MERCADOPAGO_PLAN_ESSENTIAL_ID,
+      pro: process.env.MERCADOPAGO_PLAN_PRO_ID,
+      agency: process.env.MERCADOPAGO_PLAN_AGENCY_ID,
+    };
+
+    const targetPlanId = planIds[plan];
+
+    if (!targetPlanId) {
+      // Fallback para pagamento único se o plano recorrente não estiver configurado
+      // Isso garante que o checkout não quebre enquanto os planos são provisionados
+      const preference = await createPaymentPreference({
+        userId: user.id,
+        plan: plan as any,
+        email: profile.email || user.email!,
+        fullName: profile.name,
+      });
+
+      return NextResponse.json({
+        init_point: preference.init_point,
+        preference_id: preference.id,
+        mode: 'one_time_fallback'
+      });
+    }
+
+    const subscription = await createPreapproval({
+      planId: targetPlanId,
+      payerEmail: profile.email || user.email!,
     });
 
     logSecurityEvent(
-      "checkout.preference_created",
-      { userId: user.id, plan, preferenceId: preference.id },
+      "checkout.subscription_created",
+      { userId: user.id, plan, subscriptionId: subscription.id },
       "info"
     );
 
     return NextResponse.json({
-      init_point: preference.init_point,
-      preference_id: preference.id,
+      init_point: subscription.init_point,
+      subscription_id: subscription.id,
+      mode: 'subscription'
     });
   } catch (error: unknown) {
     logSecurityEvent(

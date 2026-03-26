@@ -175,11 +175,10 @@ export default function ReviewsPage() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-lg transition-colors ${
-                  filter === f
+                className={`px-3 py-1.5 rounded-lg transition-colors ${filter === f
                     ? "bg-[#1D9E75] text-white font-medium"
                     : "bg-[#1a1f1c] border border-[#2a2f2c] text-[#9a9f9c] hover:text-[#FAFBFA]"
-                }`}
+                  }`}
               >
                 {f === "all" ? "Todos" : f === "pending" ? "Pendentes" : "Respondidos"}
               </button>
@@ -188,7 +187,7 @@ export default function ReviewsPage() {
         </div>
 
         {/* Stats bar */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           {[
             { label: "Total de reviews", value: reviews.length, color: "#9a9f9c" },
             { label: "Pendentes", value: pendingCount, color: "#EF9F27" },
@@ -216,14 +215,13 @@ export default function ReviewsPage() {
               key={review.id}
               className="bg-[#1a1f1c] border border-[#2a2f2c] rounded-2xl p-5"
             >
-              {/* Review header */}
-              <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="flex flex-col min-[440px]:flex-row items-start min-[440px]:justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0F6E56] to-[#5DCAA5] flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
                     {review.author[0]}
                   </div>
-                  <div>
-                    <div className="text-sm font-semibold text-[#FAFBFA]">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-[#FAFBFA] truncate">
                       {review.author}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
@@ -231,11 +229,10 @@ export default function ReviewsPage() {
                         {Array.from({ length: 5 }).map((_, i) => (
                           <Star
                             key={i}
-                            className={`w-3 h-3 ${
-                              i < review.rating
-                                ? "fill-[#EF9F27] text-[#EF9F27]"
-                                : "text-[#2a2f2c]"
-                            }`}
+                            className={`w-3 h-3 ${i < review.rating
+                              ? "fill-[#EF9F27] text-[#EF9F27]"
+                              : "text-[#2a2f2c]"
+                              }`}
                           />
                         ))}
                       </div>
@@ -244,11 +241,10 @@ export default function ReviewsPage() {
                   </div>
                 </div>
                 <span
-                  className={`text-[10px] font-semibold px-2 py-1 rounded-full uppercase tracking-wider flex-shrink-0 ${
-                    review.status === "responded"
-                      ? "bg-[rgba(29,158,117,0.1)] text-[#5DCAA5]"
-                      : "bg-[rgba(239,159,39,0.1)] text-[#EF9F27]"
-                  }`}
+                  className={`text-[10px] font-semibold px-2 py-1 rounded-full uppercase tracking-wider flex-shrink-0 ${review.status === "responded"
+                    ? "bg-[rgba(29,158,117,0.1)] text-[#5DCAA5]"
+                    : "bg-[rgba(239,159,39,0.1)] text-[#EF9F27]"
+                    }`}
                 >
                   {review.status === "responded" ? (
                     <span className="flex items-center gap-1">

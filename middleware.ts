@@ -26,46 +26,36 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   const { pathname } = request.nextUrl;
 
-  // ✅ ADICIONAR SECURITY HEADERS GLOBAIS
-  // Copiar headers da resposta Supabase
+  // ✅ ROTAS PROTEGIDAS
+  const protectedPaths = ["/dashboard", "/auditoria", "/reviews", "/posts", "/geo", "/relatorios", "/configuracoes", "/conectar"];
+  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
+
+  // Só executa getUser se for rota protegida ou login
+  const shouldCheckAuth = isProtected || pathname === "/login";
+
+  let user = null;
+  if (shouldCheckAuth) {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  }
+
+  // ✅ ADICIONAR SECURITY HEADERS
   const secureResponse = supabaseResponse;
-  
-  // Anti-clickjacking
+
   secureResponse.headers.set("X-Frame-Options", "DENY");
-  
-  // Previne MIME type sniffing
   secureResponse.headers.set("X-Content-Type-Options", "nosniff");
-  
-  // Legacy XSS protection
   secureResponse.headers.set("X-XSS-Protection", "1; mode=block");
-  
-  // Referrer policy (não vazar URLs)
   secureResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  
-  // Permissões de features perigosas
-  secureResponse.headers.set(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=(), payments=()"
-  );
-  
-  // SameSite cookies por padrão
+  secureResponse.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
   secureResponse.headers.set("Set-Cookie", `SameSite=Strict; Secure`);
 
-  // ✅ CONTENT SECURITY POLICY (rígida)
   if (process.env.NODE_ENV === "production") {
     secureResponse.headers.set("Content-Security-Policy", CSP_HEADERS["Content-Security-Policy"]);
   }
 
-  // Rotas protegidas — exigem autenticação
-  const protectedPaths = ["/dashboard", "/auditoria", "/reviews", "/posts", "/geo", "/relatorios", "/configuracoes", "/conectar"];
-  const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
-
+  // Proteção de rotas
   if (isProtected && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
@@ -73,7 +63,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Redireciona usuário logado para fora de /login
+  // Redireciona se já logado
   if (user && pathname === "/login") {
     const dashboardUrl = request.nextUrl.clone();
     dashboardUrl.pathname = "/dashboard";

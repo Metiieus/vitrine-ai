@@ -15,7 +15,8 @@ export default async function DashboardPage() {
   const businesses = await getUserBusinesses().catch(() => []);
 
   if (!businesses || businesses.length === 0) {
-    return <EmptyDashboard />;
+    const businessUrl = user.user_metadata?.onboarding_business_url;
+    return <EmptyDashboard onboardingUrl={businessUrl} />;
   }
 
   const business = businesses[0];

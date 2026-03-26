@@ -42,14 +42,25 @@ export const metadata: Metadata = {
       { url: "/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
     ],
   },
-  manifest: "/site.webmanifest",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://vitrine.ai'),
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
     title: "Vitrine.ai — Seja encontrado no Google e nas IAs",
     description:
-      "SEO Local + GEO com IA para negócios físicos. De invisível a indispensável.",
+      "SEO Local + GEO com IA para negócios físicos. De invisível a indispensável. Apareça no ChatGPT, Gemini e Perplexity.",
+    url: './',
+    siteName: 'Vitrine.ai',
     locale: "pt_BR",
     type: "website",
-    images: [{ url: "/logo.png" }],
+    images: [{ url: "/logo.png", width: 1200, height: 630, alt: 'Vitrine.ai Logo' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Vitrine.ai — Seja encontrado no Google e nas IAs",
+    description: "SEO Local + GEO com IA para negócios físicos. Apareça no ChatGPT, Gemini e Perplexity.",
+    images: ['/logo.png'],
   },
 };
 

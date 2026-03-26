@@ -47,140 +47,93 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, reason: "Invalid signature" }, { status: 200 });
     }
 
-    // ✅ 2. VALIDAR TIPO DE NOTIFICAÇÃO
-    if (type !== "payment") {
-      return NextResponse.json({ success: true }, { status: 200 });
-    }
-
-    // ✅ 3. VALIDAR ID
-    if (!id) {
-      logSecurityEvent(
-        "webhook.missing_payment_id",
-        { endpoint: "mercadopago", requestId },
-        "warning"
-      );
-      return NextResponse.json({ success: false }, { status: 200 });
-    }
-
-    // ✅ 4. BUSCAR INFORMAÇÕES DO PAGAMENTO
-    let paymentInfo;
-    try {
-      paymentInfo = await getPaymentInfo(id);
-    } catch (error) {
-      logSecurityEvent(
-        "webhook.payment_fetch_failed",
-        { endpoint: "mercadopago", paymentId: id, requestId, error: String(error) },
-        "error"
-      );
-      // Retornar 200 para Mercado Pago (evitar retry infinito)
-      throw new Error("Payment not found");
-    }
-
-    // ✅ 5. VALIDAR DADOS DO PAGAMENTO
-    const userId = paymentInfo.metadata?.user_id;
-    const plan = paymentInfo.metadata?.plan;
-
-    if (!userId || !sanitizeUUID(userId)) {
-      logSecurityEvent(
-        "webhook.invalid_user_id",
-        { endpoint: "mercadopago", paymentId: id, requestId },
-        "warning"
-      );
-      return NextResponse.json({ success: false }, { status: 200 });
-    }
-
-    // ✅ 6. MAPEAR STATUS
-    const status = paymentInfo.status as string;
-    let ourStatus: "approved" | "pending" | "failed" | "refunded" = "pending";
-
-    if (status === "approved") ourStatus = "approved";
-    else if (status === "rejected" || status === "cancelled") ourStatus = "failed";
-    else if (status === "refunded") ourStatus = "refunded";
-
-    // ✅ 7. SALVAR PAGAMENTO NO BANCO
+    // ✅ 7. INSTANCIAR SUPABASE COM SERVICE ROLE (BYPASS RLS PARA WEBHOOKS)
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { error: paymentError } = await supabase
-      .from("payments")
-      .insert({
-        user_id: userId,
-        mercadopago_payment_id: String(paymentInfo.id),
-        status: ourStatus,
-        amount: paymentInfo.transaction_amount || 0,
-        plan: plan || "essential",
-      });
-
-    if (paymentError) {
-      logSecurityEvent(
-        "webhook.payment_save_failed",
-        { endpoint: "mercadopago", userId, error: paymentError.message },
-        "error"
-      );
-      throw paymentError;
-    }
-
-    // ✅ 8. SE APROVADO, ATUALIZAR PLANO
-    if (ourStatus === "approved") {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ plan: plan || "essential" })
-        .eq("id", userId);
-
-      if (profileError) {
-        logSecurityEvent(
-          "webhook.profile_update_failed",
-          { endpoint: "mercadopago", userId },
-          "error"
-        );
-        throw profileError;
-      }
-
-      const { error: subscriptionError } = await supabase
-        .from("subscriptions")
-        .upsert(
-          {
-            user_id: userId,
-            plan: plan || "essential",
-            status: "active",
-            current_period_start: new Date(),
-            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-            next_billing_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          },
-          { onConflict: "user_id" }
-        );
-
-      if (subscriptionError) {
-        logSecurityEvent(
-          "webhook.subscription_update_failed",
-          { endpoint: "mercadopago", userId },
-          "error"
-        );
-        throw subscriptionError;
-      }
-
-      logSecurityEvent(
-        "payment.approved",
-        { userId, plan, paymentId: paymentInfo.id },
-        "info"
-      );
+    // ✅ 2. DISPATCHER DE NOTIFICAÇÃO
+    if (type === "payment") {
+      return await handlePaymentNotification(id!, supabase, requestId);
+    } else if (type === "preapproval") {
+      return await handleSubscriptionNotification(id!, supabase, requestId);
     }
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error: unknown) {
-    // ❌ ERRO NÃO EXPÕE DETALHES
     logSecurityEvent(
       "webhook.error",
       { endpoint: "mercadopago", requestId, error: String(error) },
       "error"
     );
-
-    // Retornar 200 para Mercado Pago não reenviar (queue infinita)
-    // Erros são logados internamente
     return NextResponse.json({ success: false, requestId }, { status: 200 });
   }
+}
+
+/**
+ * Lida com pagamentos únicos ou faturas de assinatura
+ */
+async function handlePaymentNotification(id: string, supabase: any, requestId: string) {
+  const paymentInfo = await getPaymentInfo(id);
+  const userId = paymentInfo.metadata?.user_id;
+  const plan = paymentInfo.metadata?.plan;
+
+  if (!userId) return NextResponse.json({ success: false }, { status: 200 });
+
+  // Idempotência: verificar se pagamento já existe
+  const { data: existing } = await supabase
+    .from("payments")
+    .select("id")
+    .eq("mercadopago_payment_id", String(paymentInfo.id))
+    .single();
+
+  if (existing) return NextResponse.json({ success: true, note: "already_processed" });
+
+  const status = paymentInfo.status as string;
+  let ourStatus: "approved" | "pending" | "failed" | "refunded" = "pending";
+
+  if (status === "approved") ourStatus = "approved";
+  else if (status === "rejected" || status === "cancelled") ourStatus = "failed";
+  else if (status === "refunded") ourStatus = "refunded";
+
+  await supabase.from("payments").insert({
+    user_id: userId,
+    mercadopago_payment_id: String(paymentInfo.id),
+    status: ourStatus,
+    amount: paymentInfo.transaction_amount || 0,
+    plan: plan || "essential",
+  });
+
+  if (ourStatus === "approved") {
+    // Atualizar perfil
+    await supabase.from("profiles").update({ plan: plan || "essential" }).eq("id", userId);
+
+    // Atualizar assinatura
+    await supabase.from("subscriptions").upsert({
+      user_id: userId,
+      plan: plan || "essential",
+      status: "active",
+      current_period_start: new Date(),
+      current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    }, { onConflict: "user_id" });
+  }
+
+  return NextResponse.json({ success: true });
+}
+
+/**
+ * Lida com criação/atualização de assinaturas recorrentes
+ */
+async function handleSubscriptionNotification(id: string, supabase: any, requestId: string) {
+  // Nota: Para preapproval, precisamos de um endpoint diferente no SDK se quisermos detalhes
+  // Mas no Vitrine.ai, geralmente usamos o metadata ou buscamos via ID.
+  // Por agora, logamos e marcamos a intenção.
+
+  logSecurityEvent("webhook.subscription_event", { subscriptionId: id }, "info");
+
+  // Implementação futura: Buscar preapproval por ID e atualizar o plano do usuário
+  return NextResponse.json({ success: true });
 }
 
 // Para verificar que o webhook está ativo
