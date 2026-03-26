@@ -3,9 +3,6 @@
   "devCommand": "npm run dev",
   "installCommand": "npm ci",
   "outputDirectory": ".next",
-  "env": {
-    "CRON_SECRET": "@cron_secret"
-  },
   "crons": [
     {
       "path": "/api/cron/google-token-refresh",
