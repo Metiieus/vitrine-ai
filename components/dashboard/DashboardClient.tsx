@@ -241,6 +241,12 @@ export function DashboardClient({ business, latestAudit, pendingReviewsCount, in
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <h1 className="font-display text-xl font-bold text-[#FAFBFA]">{b.name}</h1>
+                                    {business.google_location_name && (
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[rgba(29,158,117,0.1)] border border-[rgba(29,158,117,0.2)]">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-[#1D9E75] animate-pulse" />
+                                            <span className="text-[10px] font-bold text-[#1D9E75] uppercase">Google Conectado</span>
+                                        </div>
+                                    )}
                                     <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(239,159,39,0.12)] border border-[rgba(239,159,39,0.2)]">
                                         <Star className="w-3 h-3 fill-[#EF9F27] text-[#EF9F27]" />
                                         <span className="text-xs font-semibold text-[#EF9F27]">{b.googleRating}</span>

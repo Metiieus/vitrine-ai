@@ -11,9 +11,10 @@ export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.profile",
 ].join(" ");
 
-const APP_URL = process.env.NODE_ENV === "production"
-  ? "https://vitrine-ai-five.vercel.app"
-  : (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000");
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ||
+  (process.env.NODE_ENV === "production"
+    ? "https://vitrine-ai-five.vercel.app"
+    : "http://localhost:3000");
 
 const REDIRECT_URI = `${APP_URL}/api/google/callback`;
 

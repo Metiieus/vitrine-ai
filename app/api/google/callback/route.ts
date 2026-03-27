@@ -17,9 +17,10 @@ import {
 import { listAccounts } from "@/lib/google/business";
 import { encrypt } from "@/lib/utils/encrypt";
 
-const APP_URL = process.env.NODE_ENV === "production"
-  ? "https://vitrine-ai-five.vercel.app"
-  : (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ||
+  (process.env.NODE_ENV === "production"
+    ? "https://vitrine-ai-five.vercel.app"
+    : "http://localhost:3000");
 
 function redirectError(msg: string) {
   return NextResponse.redirect(

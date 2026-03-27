@@ -26,19 +26,48 @@ export async function logGDBSync() {
     console.log(`Logging GDB sync`);
 }
 
-export async function runBusinessAudit(_businessId: string): Promise<AuditResult> {
-    // In a real scenario, this would:
-    // 1. Fetch fresh data from Google Business Profile API using the user's connected account
-    // 2. Fetch fresh data from Gemini/Perplexity for GEO visibility
-    // 3. Compare with our local database (Supabase)
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-    // Since we are mocking the actual GBP API call in this boilerplate, we will generate a realistic mock result based on database fields if they exist, or just random/fixed.
+export async function runBusinessAudit(businessId: string): Promise<AuditResult> {
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!, // Use service role for backend logic
+        {
+            cookies: {
+                getAll: () => cookieStore.getAll(),
+                setAll: () => { },
+            },
+        }
+    );
 
-    const photosScore = Math.floor(Math.random() * 15) + 10; // Out of 25
-    const infoScore = 20; // Out of 25
-    const reviewsScore = Math.floor(Math.random() * 10) + 10; // Out of 20
-    const postsScore = 5; // Out of 15
-    const geoScore = 8; // Out of 15
+    // 1. Fetch real counts
+    const [{ count: reviewsCount }, { count: postsCount }, { data: business }] = await Promise.all([
+        supabase.from("reviews").select("*", { count: "exact", head: true }).eq("business_id", businessId),
+        supabase.from("google_posts").select("*", { count: "exact", head: true }).eq("business_id", businessId),
+        supabase.from("businesses").select("*").eq("id", businessId).single()
+    ]);
+
+    // 2. Score logic (Dynamic based on data)
+    // Photos: 0-25 (Mocked for now as we don't sync photos yet)
+    let photosScore = 15;
+
+    // Info: 0-25
+    let infoScore = 10;
+    if (business?.category) infoScore += 5;
+    if (business?.phone) infoScore += 5;
+    if (business?.website) infoScore += 5;
+
+    // Reviews: 0-20
+    let reviewsScore = Math.min(20, (reviewsCount || 0) * 2);
+    if (reviewsCount && reviewsCount > 50) reviewsScore = 20;
+
+    // Posts: 0-15
+    let postsScore = Math.min(15, (postsCount || 0) * 3);
+
+    // GEO: 0-15 (Still mocked until RadarLocal is fully integrated)
+    const geoScore = 8;
 
     const totalScore = photosScore + infoScore + reviewsScore + postsScore + geoScore;
 
@@ -49,7 +78,7 @@ export async function runBusinessAudit(_businessId: string): Promise<AuditResult
             id: "t1",
             priority: "high",
             category: "reviews",
-            text: "Você tem avaliações pendentes sem resposta",
+            text: reviewsCount === 0 ? "Você ainda não tem avaliações sincronizadas." : "Você tem avaliações pendentes sem resposta",
             href: "/reviews",
         });
     }
@@ -59,7 +88,7 @@ export async function runBusinessAudit(_businessId: string): Promise<AuditResult
             id: "t2",
             priority: "high",
             category: "posts",
-            text: "Seu último post no Google faz mais de 15 dias",
+            text: "Crie mais posts no Google para aumentar seu alcance",
             href: "/posts",
         });
     }
@@ -69,18 +98,8 @@ export async function runBusinessAudit(_businessId: string): Promise<AuditResult
             id: "t3",
             priority: "medium",
             category: "geo",
-            text: "Sua visibilidade em IAs (Gemini/ChatGPT) está baixa",
+            text: "Sua visibilidade em IAs (Gemini/ChatGPT) pode ser melhorada",
             href: "/geo",
-        });
-    }
-
-    if (photosScore < 20) {
-        tasks.push({
-            id: "t4",
-            priority: "low",
-            category: "photos",
-            text: "Adicione mais fotos recentes (apenas 2 este mês)",
-            href: "/auditoria",
         });
     }
 

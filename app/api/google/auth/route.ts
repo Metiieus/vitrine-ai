@@ -16,9 +16,10 @@ import { createServerClient } from "@supabase/ssr";
 import { buildAuthUrl } from "@/lib/google/oauth";
 import { randomBytes } from "crypto";
 
-const APP_URL = process.env.NODE_ENV === "production"
-  ? "https://vitrine-ai-five.vercel.app"
-  : (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ||
+  (process.env.NODE_ENV === "production"
+    ? "https://vitrine-ai-five.vercel.app"
+    : "http://localhost:3000");
 
 export async function GET(request: NextRequest) {
   // 1. Verificar autenticação Supabase
