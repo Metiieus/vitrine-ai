@@ -31,7 +31,7 @@ export default async function DashboardPage() {
 
   // ✅ CONSOLIDAR queries: usar select() com relacionamentos ao invés de N+1
   const supabase = await createClient();
-  const { data: businessData } = await supabase
+  const { data: businessData, error } = await supabase
     .from('businesses')
     .select(`
       *,
@@ -41,8 +41,7 @@ export default async function DashboardPage() {
       geo_checks(*)
     `)
     .eq('id', business.id)
-    .single()
-    .catch(() => ({ data: null }));
+    .single();
 
   const audits = businessData?.audits ?? [];
   const reviews = businessData?.reviews ?? [];
