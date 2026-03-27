@@ -9,7 +9,7 @@
 export const dynamic = "force-dynamic";
 
 import { type NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
 import {
   exchangeCodeForTokens,
   getGoogleUserEmail,
@@ -107,15 +107,15 @@ export async function GET(request: NextRequest) {
     return redirectError("Configuração do servidor incompleta (Supabase).");
   }
 
-  const supabase = createServerClient(
+  const supabaseAdmin = createSupabaseAdmin(
     supabaseUrl,
     supabaseKey,
     {
-      cookies: { getAll: () => [], setAll: () => { } },
+      auth: { autoRefreshToken: false, persistSession: false },
     }
   );
 
-  const { error: upsertError } = await supabase
+  const { error: upsertError } = await supabaseAdmin
     .from("google_connections")
     .upsert(
       {
