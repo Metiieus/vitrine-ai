@@ -134,9 +134,11 @@ type DashboardClientProps = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     latestAudit: any;
     pendingReviewsCount: number;
+    insights?: any;
+    geoChecks?: any[];
 };
 
-export function DashboardClient({ business, latestAudit, pendingReviewsCount }: DashboardClientProps) {
+export function DashboardClient({ business, latestAudit, pendingReviewsCount, insights, geoChecks }: DashboardClientProps) {
     const router = useRouter();
     const [isAuditing, setIsAuditing] = useState(false);
 
@@ -167,8 +169,8 @@ export function DashboardClient({ business, latestAudit, pendingReviewsCount }: 
         state: business.state || "",
         phone: business.phone || "---",
         website: business.website || "",
-        googleRating: 4.8,
-        totalReviews: 120,
+        googleRating: business.google_rating || 0,
+        totalReviews: business.total_reviews || 0,
         auditScore: latestAudit?.score || 0,
         lastAuditAt: latestAudit?.created_at ? new Date(latestAudit.created_at).toLocaleDateString("pt-BR") : "Nenhuma auditoria realizada ainda",
     };
@@ -177,7 +179,7 @@ export function DashboardClient({ business, latestAudit, pendingReviewsCount }: 
     const mockMax = { photos: 25, info: 25, reviews: 20, posts: 15, geo: 15 };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const MOCK_TASKS = latestAudit?.tasks?.map((t: any, i: number) => ({
+    const TASKS = latestAudit?.tasks?.map((t: any, i: number) => ({
         id: String(i),
         priority: t.priority,
         category: t.category,
@@ -187,21 +189,39 @@ export function DashboardClient({ business, latestAudit, pendingReviewsCount }: 
 
     const ins = {
         period: "últimos 30 dias",
-        searches: { value: 1240, change: +12 },
-        views: { value: 3420, change: +8 },
-        calls: { value: 89, change: -3 },
-        directions: { value: 156, change: +22 },
-        clicks: { value: 234, change: +5 },
+        searches: { value: insights?.searches || 0, change: 0 },
+        views: { value: insights?.views || 0, change: 0 },
+        calls: { value: insights?.calls || 0, change: 0 },
+        directions: { value: insights?.direction_requests || 0, change: 0 },
+        clicks: { value: insights?.website_clicks || 0, change: 0 },
     };
 
-    const MOCK_GEO = [
-        { platform: "Maps", icon: "G", color: "#34A853", found: true, pos: 3 },
-        { platform: "ChatGPT", icon: "C", color: "#10A37F", found: true, pos: null },
+    const PLATFORM_MAP: Record<string, { label: string, icon: string, color: string }> = {
+        chatgpt: { label: "ChatGPT", icon: "C", color: "#10A37F" },
+        gemini: { label: "Gemini", icon: "G", color: "#4285F4" },
+        perplexity: { label: "Perplexity", icon: "P", color: "#7C5CFC" },
+        ai_overviews: { label: "AI Overview", icon: "A", color: "#EF9F27" },
+        maps: { label: "Maps", icon: "G", color: "#34A853" },
+    };
+
+    const realGeo = geoChecks?.map(g => ({
+        platform: PLATFORM_MAP[g.ai_platform]?.label || g.ai_platform,
+        icon: PLATFORM_MAP[g.ai_platform]?.icon || "?",
+        color: PLATFORM_MAP[g.ai_platform]?.color || "#999",
+        found: g.found,
+        pos: g.position
+    })) || [];
+
+    // Se não houver dados GEO, mostrar lista vazia ou placeholders
+    const displayGeo = realGeo.length > 0 ? realGeo : [
+        { platform: "Maps", icon: "G", color: "#34A853", found: false, pos: null },
+        { platform: "ChatGPT", icon: "C", color: "#10A37F", found: false, pos: null },
         { platform: "Gemini", icon: "G", color: "#4285F4", found: false, pos: null },
-        { platform: "Perplexity", icon: "P", color: "#7C5CFC", found: true, pos: 1 },
+        { platform: "Perplexity", icon: "P", color: "#7C5CFC", found: false, pos: null },
         { platform: "AI Overview", icon: "A", color: "#EF9F27", found: false, pos: null },
     ];
-    const geoFound = MOCK_GEO.filter((g) => g.found).length;
+
+    const geoFound = displayGeo.filter((g) => g.found).length;
 
     return (
         <div className="min-h-screen bg-[#0A0F0D] text-[#dadedd]">
@@ -309,13 +329,13 @@ export function DashboardClient({ business, latestAudit, pendingReviewsCount }: 
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <h2 className="text-[14px] font-semibold text-[#FAFBFA]">Tarefas prioritárias</h2>
-                                <p className="text-xs text-[#5a5f5c]">{MOCK_TASKS.length} ações para melhorar seu score</p>
+                                <p className="text-xs text-[#5a5f5c]">{TASKS.length} ações para melhorar seu score</p>
                             </div>
                             <button className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[rgba(29,158,117,0.08)] border border-[rgba(29,158,117,0.2)] text-[#1D9E75] hover:bg-[rgba(29,158,117,0.14)] transition-colors"><Zap className="w-3.5 h-3.5" /> Gerar com IA</button>
                         </div>
                         <div className="flex flex-col gap-2">
                             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                            {MOCK_TASKS.map((t: any) => {
+                            {TASKS.map((t: any) => {
                                 const p = PRIO[t.priority as keyof typeof PRIO] || PRIO.medium;
                                 return (
                                     <Link key={t.id} href={t.href} className={`group flex items-center gap-3 p-3 rounded-xl border border-transparent hover:border-[#2a2f2c] ${p.bg} hover:bg-[rgba(255,255,255,0.03)] transition-all`}>
@@ -366,13 +386,13 @@ export function DashboardClient({ business, latestAudit, pendingReviewsCount }: 
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <h2 className="text-[14px] font-semibold text-[#FAFBFA]">Monitor GEO</h2>
-                                <p className="text-xs text-[#5a5f5c]"><span className="text-[#1D9E75] font-semibold">{geoFound}</span>/{MOCK_GEO.length} plataformas</p>
+                                <p className="text-xs text-[#5a5f5c]"><span className="text-[#1D9E75] font-semibold">{geoFound}</span>/{displayGeo.length} plataformas</p>
                             </div>
                             <Link href="/geo" className="text-xs text-[#1D9E75] hover:text-[#5DCAA5] flex items-center gap-1 transition-colors">Ver <ArrowRight className="w-3 h-3" /></Link>
                         </div>
-                        <div className="flex justify-center mb-4"><ScoreGauge score={Math.round((geoFound / MOCK_GEO.length) * 100)} size={120} /></div>
+                        <div className="flex justify-center mb-4"><ScoreGauge score={Math.round((geoFound / displayGeo.length) * 100)} size={120} /></div>
                         <div className="flex flex-col gap-2">
-                            {MOCK_GEO.map((g) => (
+                            {displayGeo.map((g: any) => (
                                 <div key={g.platform} className={`flex items-center gap-3 px-3 py-2 rounded-xl ${g.found ? "bg-[rgba(29,158,117,0.06)] border border-[rgba(29,158,117,0.15)]" : "bg-[rgba(255,255,255,0.02)] border border-[#2a2f2c]"}`}>
                                     <div className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{ background: g.color + "22", color: g.color }}>{g.icon}</div>
                                     <span className="text-xs flex-1 text-[#dadedd]">{g.platform}</span>

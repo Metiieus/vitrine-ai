@@ -194,6 +194,61 @@ export async function getBusinessPosts(businessId: string) {
 }
 
 /**
+ * Obter insights de um negócio
+ */
+export async function getBusinessInsights(businessId: string) {
+  const user = await getUser();
+  const supabase = createSupabaseServer();
+
+  // Verificar que o negócio pertence ao usuário
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('id', businessId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (businessError || !business) throw new Error('Negócio não encontrado');
+
+  const { data, error } = await supabase
+    .from('insights')
+    .select('*')
+    .eq('business_id', businessId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data || null;
+}
+
+/**
+ * Obter GEO checks de um negócio
+ */
+export async function getBusinessGeoChecks(businessId: string) {
+  const user = await getUser();
+  const supabase = createSupabaseServer();
+
+  // Verificar que o negócio pertence ao usuário
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('id', businessId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (businessError || !business) throw new Error('Negócio não encontrado');
+
+  const { data, error } = await supabase
+    .from('geo_checks')
+    .select('*')
+    .eq('business_id', businessId)
+    .order('checked_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
  * Criar novo negócio
  */
 export async function createBusiness(params: {

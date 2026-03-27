@@ -11,10 +11,16 @@ export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.profile",
 ].join(" ");
 
+const APP_URL = process.env.NODE_ENV === "production"
+  ? "https://vitrine-ai-five.vercel.app"
+  : (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000");
+
+const REDIRECT_URI = `${APP_URL}/api/google/callback`;
+
 export function buildAuthUrl(state: string): string {
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID!,
-    redirect_uri: process.env.GOOGLE_REDIRECT_URI!,
+    redirect_uri: REDIRECT_URI,
     response_type: "code",
     scope: GOOGLE_SCOPES,
     access_type: "offline",
@@ -42,7 +48,7 @@ export async function exchangeCodeForTokens(code: string): Promise<TokenResponse
       code,
       client_id: process.env.GOOGLE_CLIENT_ID!,
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirect_uri: process.env.GOOGLE_REDIRECT_URI!,
+      redirect_uri: REDIRECT_URI,
       grant_type: "authorization_code",
     }),
   });

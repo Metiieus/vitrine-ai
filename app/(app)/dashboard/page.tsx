@@ -1,5 +1,12 @@
 import { redirect } from "next/navigation";
-import { getUser, getUserBusinesses, getBusinessAudits, getBusinessReviews } from "@/lib/supabase/queries";
+import {
+  getUser,
+  getUserBusinesses,
+  getBusinessAudits,
+  getBusinessReviews,
+  getBusinessInsights,
+  getBusinessGeoChecks
+} from "@/lib/supabase/queries";
 import { EmptyDashboard } from "@/components/dashboard/EmptyDashboard";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 
@@ -21,9 +28,11 @@ export default async function DashboardPage() {
 
   const business = businesses[0];
 
-  const [audits, reviews] = await Promise.all([
+  const [audits, reviews, insights, geoChecks] = await Promise.all([
     getBusinessAudits(business.id).catch(() => []),
-    getBusinessReviews(business.id).catch(() => [])
+    getBusinessReviews(business.id).catch(() => []),
+    getBusinessInsights(business.id).catch(() => null),
+    getBusinessGeoChecks(business.id).catch(() => [])
   ]);
 
   const latestAudit = audits.length > 0 ? audits[0] : null;
@@ -35,6 +44,8 @@ export default async function DashboardPage() {
       business={business}
       latestAudit={latestAudit}
       pendingReviewsCount={pendingReviewsCount}
+      insights={insights}
+      geoChecks={geoChecks}
     />
   );
 }
