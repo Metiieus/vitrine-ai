@@ -104,15 +104,16 @@ function Section({
 function Field({
   label,
   value,
+  onChange,
   type = "text",
   placeholder,
 }: {
   label: string;
   value: string;
+  onChange?: (val: string) => void;
   type?: string;
   placeholder?: string;
 }) {
-  const [val, setVal] = useState(value);
   return (
     <div>
       <label className="block text-xs text-[#9a9f9c] mb-1.5 font-medium">
@@ -120,8 +121,8 @@ function Field({
       </label>
       <input
         type={type}
-        value={val}
-        onChange={(e) => setVal(e.target.value)}
+        value={value}
+        onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
         className="w-full px-3 py-2.5 bg-[#0d1210] border border-[#2a2f2c] rounded-xl text-sm text-[#FAFBFA] placeholder-[#3a3f3c] focus:outline-none focus:border-[#1D9E75] transition-colors"
       />
@@ -139,6 +140,15 @@ export default function ConfiguracoesPage() {
   const [user, setUser] = useState<any>(null);
   const [business, setBusiness] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [formData, setFormData] = useState({
+    profileName: "",
+    profilePhone: "",
+    businessName: "",
+    businessCategory: "",
+    businessCity: "",
+    businessState: ""
+  });
   const [notifications, setNotifications] = useState({
     newReview: true,
     weeklyReport: true,
@@ -163,16 +173,28 @@ export default function ConfiguracoesPage() {
 
       setUser(authUser);
 
+      // Buscar perfil
+      const { data: profile } = await supabase.from('profiles').select('name').eq('id', authUser.id).single();
+
       // Buscar dados do negócio
-      const { data: businesses } = await supabase
+      const { data: businesses } = (await supabase
         .from("businesses")
         .select("*")
         .eq("user_id", authUser.id)
-        .limit(1);
+        .limit(1)) as { data: any[]; error: any };
 
       if (businesses && businesses.length > 0) {
         setBusiness(businesses[0]);
       }
+
+      setFormData({
+        profileName: profile?.name || authUser.user_metadata?.name || "",
+        profilePhone: authUser.user_metadata?.phone || "",
+        businessName: businesses?.[0]?.name || "",
+        businessCategory: businesses?.[0]?.category || "",
+        businessCity: businesses?.[0]?.city || "",
+        businessState: businesses?.[0]?.state || ""
+      });
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     } finally {
@@ -189,6 +211,7 @@ export default function ConfiguracoesPage() {
   }
 
   const userEmail = user?.email || "seu-email@exemplo.com";
+  // @ts-ignore
   const initials = (business?.name || "?")
     .split(" ")
     .slice(0, 2)
@@ -203,6 +226,11 @@ export default function ConfiguracoesPage() {
   }
 
   async function handleSave() {
+    if (!user) return;
+    setSavingProfile(true);
+    await (supabase.from('profiles') as any).update({ name: formData.profileName }).eq('id', user.id);
+    await supabase.auth.updateUser({ data: { phone: formData.profilePhone, name: formData.profileName } });
+    setSavingProfile(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -226,17 +254,18 @@ export default function ConfiguracoesPage() {
           {/* Perfil */}
           <Section title="Perfil" icon={User}>
             <div className="grid sm:grid-cols-2 gap-4 mb-5">
-              <Field label="Nome" value={user?.user_metadata?.name || ""} />
+              <Field label="Nome" value={formData.profileName} onChange={(v) => setFormData(p => ({ ...p, profileName: v }))} />
               <Field label="E-mail" value={userEmail} />
-              <Field label="Telefone" value={user?.user_metadata?.phone || ""} type="tel" />
+              <Field label="Telefone" value={formData.profilePhone} onChange={(v) => setFormData(p => ({ ...p, profilePhone: v }))} type="tel" />
               <Field label="WhatsApp para suporte" value="" placeholder="(11) 99999-9999" type="tel" />
             </div>
             <button
               onClick={handleSave}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1D9E75] text-white text-sm font-semibold hover:bg-[#3DB88E] transition-colors"
+              disabled={savingProfile}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1D9E75] text-white text-sm font-semibold hover:bg-[#3DB88E] transition-colors disabled:opacity-50"
             >
-              {saved ? <Check className="w-4 h-4" /> : null}
-              {saved ? "Salvo!" : "Salvar alterações"}
+              {savingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : null}
+              {savingProfile ? "Salvando..." : saved ? "Salvo!" : "Salvar alterações"}
             </button>
           </Section>
 
@@ -258,10 +287,10 @@ export default function ConfiguracoesPage() {
                   </div>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4 mb-5">
-                  <Field label="Nome do negócio" value={business.name || ""} />
-                  <Field label="Categoria" value={business.category || ""} />
-                  <Field label="Cidade" value={business.city || ""} />
-                  <Field label="Estado" value={business.state || ""} />
+                  <Field label="Nome do negócio" value={formData.businessName} onChange={(v) => setFormData(p => ({ ...p, businessName: v }))} />
+                  <Field label="Categoria" value={formData.businessCategory} onChange={(v) => setFormData(p => ({ ...p, businessCategory: v }))} />
+                  <Field label="Cidade" value={formData.businessCity} onChange={(v) => setFormData(p => ({ ...p, businessCity: v }))} />
+                  <Field label="Estado" value={formData.businessState} onChange={(v) => setFormData(p => ({ ...p, businessState: v }))} />
                 </div>
                 <a
                   href="/conectar"
@@ -291,13 +320,12 @@ export default function ConfiguracoesPage() {
               {PLANS.map((plan) => (
                 <div
                   key={plan.id}
-                  className={`rounded-xl border p-4 relative ${
-                    plan.current
-                      ? "border-[rgba(29,158,117,0.4)] bg-[rgba(29,158,117,0.07)]"
-                      : plan.highlight
+                  className={`rounded-xl border p-4 relative ${plan.current
+                    ? "border-[rgba(29,158,117,0.4)] bg-[rgba(29,158,117,0.07)]"
+                    : plan.highlight
                       ? "border-[rgba(29,158,117,0.25)] bg-[rgba(29,158,117,0.03)]"
                       : "border-[#2a2f2c] bg-[#0d1210]"
-                  }`}
+                    }`}
                 >
                   {plan.current && (
                     <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1D9E75] text-white whitespace-nowrap">
@@ -375,18 +403,16 @@ export default function ConfiguracoesPage() {
                         [n.key]: !prev[n.key as keyof typeof prev],
                       }))
                     }
-                    className={`relative w-10 h-5 rounded-full transition-colors ${
-                      notifications[n.key as keyof typeof notifications]
-                        ? "bg-[#1D9E75]"
-                        : "bg-[#2a2f2c]"
-                    }`}
+                    className={`relative w-10 h-5 rounded-full transition-colors ${notifications[n.key as keyof typeof notifications]
+                      ? "bg-[#1D9E75]"
+                      : "bg-[#2a2f2c]"
+                      }`}
                   >
                     <div
-                      className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                        notifications[n.key as keyof typeof notifications]
-                          ? "translate-x-5"
-                          : "translate-x-0.5"
-                      }`}
+                      className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${notifications[n.key as keyof typeof notifications]
+                        ? "translate-x-5"
+                        : "translate-x-0.5"
+                        }`}
                     />
                   </button>
                 </div>

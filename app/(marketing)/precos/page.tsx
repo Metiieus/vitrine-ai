@@ -1,5 +1,7 @@
 'use client';
 
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { CheckoutButton } from '@/components/dashboard/CheckoutButton';
 import { Card } from '@/components/ui/card';
 
@@ -79,7 +81,7 @@ const faqs = [
   },
   {
     q: 'Vocês oferecem período de teste?',
-    a: 'Oferecemos 7 dias de teste grátis no plano Profissional. Sem cartão de crédito necessário.',
+    a: 'Oferecemos 14 dias de teste grátis do plano Free automaticamente ao criar uma conta. Sem cartão de crédito necessário.',
   },
   {
     q: 'Qual método de pagamento vocês aceitam?',
@@ -91,9 +93,26 @@ const faqs = [
   },
 ];
 
+function PricingAlerts() {
+  const searchParams = useSearchParams();
+  const trialExpired = searchParams.get('trial_expired');
+
+  if (!trialExpired) return null;
+
+  return (
+    <div className="bg-red-500 text-white text-center py-3 font-semibold px-4 shadow-md">
+      ⚠️ Seu período de teste de 14 dias expirou. Faça o upgrade e retome o acesso a todos os recursos imediatamente!
+    </div>
+  );
+}
+
 export default function PricingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-[#E1F5EE] to-[#9FE1CB]">
+      <Suspense fallback={null}>
+        <PricingAlerts />
+      </Suspense>
+
       {/* Hero */}
       <div className="max-w-6xl mx-auto px-4 py-16 text-center">
         <h1 className="text-5xl md:text-6xl font-bold text-[#04342C] mb-4">
@@ -111,8 +130,8 @@ export default function PricingPage() {
             <Card
               key={plan.id}
               className={`relative p-8 flex flex-col transition-all ${plan.highlighted
-                  ? 'ring-2 ring-[#1D9E75] shadow-2xl transform scale-105'
-                  : 'border'
+                ? 'ring-2 ring-[#1D9E75] shadow-2xl transform scale-105'
+                : 'border'
                 }`}
             >
               {plan.highlighted && (
@@ -190,7 +209,7 @@ export default function PricingPage() {
         <div className="bg-[#0F6E56] text-white rounded-lg p-8">
           <h2 className="text-3xl font-bold mb-4">Pronto para começar?</h2>
           <p className="text-lg mb-6 opacity-90">
-            Não é necessário cartão de crédito. Comece com o plano Essencial grátis por 7 dias.
+            Não é necessário cartão de crédito inicial. Você começou automaticamente com seu Plano Free de 14 dias.
           </p>
           <CheckoutButton
             plan="pro"

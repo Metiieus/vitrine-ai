@@ -67,14 +67,22 @@ export async function middleware(request: NextRequest) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+    const redirectResponse = NextResponse.redirect(loginUrl);
+    secureResponse.cookies.getAll().forEach(cookie => {
+      redirectResponse.cookies.set({ ...cookie });
+    });
+    return redirectResponse;
   }
 
   // Redireciona se já logado
   if (user && pathname === "/login") {
     const dashboardUrl = request.nextUrl.clone();
     dashboardUrl.pathname = "/dashboard";
-    return NextResponse.redirect(dashboardUrl);
+    const redirectResponse = NextResponse.redirect(dashboardUrl);
+    secureResponse.cookies.getAll().forEach(cookie => {
+      redirectResponse.cookies.set({ ...cookie });
+    });
+    return redirectResponse;
   }
 
   return secureResponse;

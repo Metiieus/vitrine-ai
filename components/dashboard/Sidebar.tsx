@@ -19,6 +19,9 @@ import {
   Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { setActiveBusiness } from "@/app/actions/business";
+import { useRouter } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, badge: undefined, lock: undefined },
@@ -42,11 +45,19 @@ interface SidebarProps {
   userName: string;
   userEmail: string;
   plan: string;
+  businesses?: { id: string; name: string }[];
+  activeBusinessId?: string | null;
 }
 
-export function Sidebar({ userName, userEmail, plan }: SidebarProps) {
+export function Sidebar({ userName, userEmail, plan, businesses = [], activeBusinessId }: SidebarProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleBusinessChange(value: string) {
+    await setActiveBusiness(value);
+    router.refresh();
+  }
 
   const planInfo = PLAN_LABELS[plan] ?? PLAN_LABELS.free;
   const displayName = userName || userEmail?.split("@")[0] || "Usuário";
@@ -101,6 +112,24 @@ export function Sidebar({ userName, userEmail, plan }: SidebarProps) {
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Business Select */}
+        {businesses.length > 1 && (
+          <div className="px-4 py-3 border-b border-[#2a2f2c]">
+            <Select value={activeBusinessId || undefined} onValueChange={handleBusinessChange}>
+              <SelectTrigger className="w-full bg-[#0A0F0D] border-[#2a2f2c] text-[#FAFBFA] h-9">
+                <SelectValue placeholder="Selecione um negócio" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#111614] border-[#2a2f2c] text-[#dadedd]">
+                {businesses.map((b) => (
+                  <SelectItem key={b.id} value={b.id} className="hover:bg-[#2a2f2c] focus:bg-[#2a2f2c]">
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">

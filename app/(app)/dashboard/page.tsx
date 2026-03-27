@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import {
   getUser,
@@ -27,7 +28,14 @@ export default async function DashboardPage() {
     return <EmptyDashboard onboardingUrl={businessUrl} />;
   }
 
-  const business = businesses[0];
+  const cookieStore = cookies();
+  const activeBusinessIdFromCookie = cookieStore.get("active_business_id")?.value;
+
+  let business = businesses[0];
+  if (activeBusinessIdFromCookie) {
+    const selected = businesses.find((b: any) => b.id === activeBusinessIdFromCookie);
+    if (selected) business = selected;
+  }
 
   // ✅ CONSOLIDAR queries: usar select() com relacionamentos ao invés de N+1
   const supabase = await createClient();
