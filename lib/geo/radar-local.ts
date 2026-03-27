@@ -36,7 +36,7 @@ export async function fetchGridFromDB(
 
   if (error) {
     console.warn("Erro ao buscar grid:", error);
-    return generateMockGrid(keyword); // Fallback
+    return generateEmptyGrid(keyword); // Fallback
   }
 
   // Converter array plato em grid 7x7
@@ -59,10 +59,9 @@ export async function fetchGridFromDB(
 }
 
 /**
- * Gerar grid mock (usado quando DB não tem dados)
- * @deprecated Remova este fallback — sempre mostrar "sem dados" se vazio
+ * Gerar grid vazio (usado quando DB não tem dados)
  */
-export function generateMockGrid(keyword: string): GridCell[][] {
+export function generateEmptyGrid(keyword: string): GridCell[][] {
   // Retornar grid vazio ao invés de fake data
   const grid: GridCell[][] = [];
   for (let row = 0; row < 7; row++) {

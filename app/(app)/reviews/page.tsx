@@ -36,20 +36,12 @@ type Business = {
   state: string;
 };
 
-type Business = {
-  id: string;
-  name: string;
-  category: string;
-  city: string;
-  state: string;
-};
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [business, setBusiness] = useState<Business | null>(null);
-  const [filter, setFilter] = useState<"all" | "draft" | "published">("all");
+  const [filter, setFilter] = useState<"all" | "pending" | "responded">("all");
   const [generating, setGenerating] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +56,7 @@ export default function ReviewsPage() {
   async function loadData() {
     try {
       setLoading(true);
-      
+
       // Buscar usuário
       const {
         data: { user },
@@ -88,7 +80,7 @@ export default function ReviewsPage() {
         return;
       }
 
-      const currentBusiness = businesses[0];
+      const currentBusiness = businesses[0] as Business;
       setBusiness(currentBusiness);
 
       // ✅ Buscar reviews REAIS deste negócio
@@ -131,7 +123,7 @@ export default function ReviewsPage() {
   }
 
   const filtered = reviews.filter(
-    (r) => filter === "all" || r.response_status === (filter === "pending" ? "draft" : filter === "responded" ? "published" : filter)
+    (r) => filter === "all" || r.response_status === (filter === "pending" ? "draft" : "published")
   );
   const pendingCount = reviews.filter(
     (r) => !r.ai_response || r.response_status === "draft"
@@ -169,7 +161,7 @@ export default function ReviewsPage() {
           ai_response: data.response,
           response_status: "draft",
           updated_at: new Date().toISOString(),
-        })
+        } as never)
         .eq("id", id);
 
       if (updateError) throw updateError;
@@ -202,7 +194,7 @@ export default function ReviewsPage() {
       .update({
         response_status: "published",
         updated_at: new Date().toISOString(),
-      })
+      } as never)
       .eq("id", id);
 
     if (error) {
@@ -240,8 +232,8 @@ export default function ReviewsPage() {
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`px-3 py-1.5 rounded-lg transition-colors ${filter === f
-                    ? "bg-[#1D9E75] text-white font-medium"
-                    : "bg-[#1a1f1c] border border-[#2a2f2c] text-[#9a9f9c] hover:text-[#FAFBFA]"
+                  ? "bg-[#1D9E75] text-white font-medium"
+                  : "bg-[#1a1f1c] border border-[#2a2f2c] text-[#9a9f9c] hover:text-[#FAFBFA]"
                   }`}
               >
                 {f === "all" ? "Todos" : f === "pending" ? "Pendentes" : "Respondidos"}

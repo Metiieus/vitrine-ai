@@ -43,15 +43,16 @@ export async function runBusinessAudit(businessId: string): Promise<AuditResult>
     );
 
     // 1. Fetch real counts
-    const [{ count: reviewsCount }, { count: postsCount }, { data: business }] = await Promise.all([
+    const [{ count: reviewsCount }, { count: postsCount }, { count: geoFoundCount }, { data: business }] = await Promise.all([
         supabase.from("reviews").select("*", { count: "exact", head: true }).eq("business_id", businessId),
         supabase.from("google_posts").select("*", { count: "exact", head: true }).eq("business_id", businessId),
+        supabase.from("geo_checks").select("*", { count: "exact", head: true }).eq("business_id", businessId).eq("found", true),
         supabase.from("businesses").select("*").eq("id", businessId).single()
     ]);
 
     // 2. Score logic (Dynamic based on data)
-    // Photos: 0-25 (Mocked for now as we don't sync photos yet)
-    let photosScore = 15;
+    // Photos: 0-25 (Ainda sem sincronização de fotos pela API)
+    const photosScore = 15;
 
     // Info: 0-25
     let infoScore = 10;
@@ -64,10 +65,10 @@ export async function runBusinessAudit(businessId: string): Promise<AuditResult>
     if (reviewsCount && reviewsCount > 50) reviewsScore = 20;
 
     // Posts: 0-15
-    let postsScore = Math.min(15, (postsCount || 0) * 3);
+    const postsScore = Math.min(15, (postsCount || 0) * 3);
 
-    // GEO: 0-15 (Still mocked until RadarLocal is fully integrated)
-    const geoScore = 8;
+    // GEO: 0-15 (Usando resultado da tabela geo_checks)
+    const geoScore = Math.min(15, (geoFoundCount || 0) * 5); // 5 points per platform found
 
     const totalScore = photosScore + infoScore + reviewsScore + postsScore + geoScore;
 

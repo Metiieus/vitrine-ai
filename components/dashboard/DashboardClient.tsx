@@ -176,7 +176,7 @@ export function DashboardClient({ business, latestAudit, pendingReviewsCount, in
     };
 
     const auditData = latestAudit?.category_scores || { photos: 0, info: 0, reviews: 0, posts: 0, geo: 0 };
-    const mockMax = { photos: 25, info: 25, reviews: 20, posts: 15, geo: 15 };
+    const maxScores = { photos: 25, info: 25, reviews: 20, posts: 15, geo: 15 };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const TASKS = latestAudit?.tasks?.map((t: any, i: number) => ({
@@ -312,11 +312,11 @@ export function DashboardClient({ business, latestAudit, pendingReviewsCount, in
                                 <div className="flex justify-center"><RadarChart data={auditData} score={b.auditScore} /></div>
                                 <div className="grid grid-cols-5 gap-1 mt-2">
                                     {[
-                                        { label: "Fotos", val: auditData.photos, max: mockMax.photos },
-                                        { label: "Info", val: auditData.info, max: mockMax.info },
-                                        { label: "Review", val: auditData.reviews, max: mockMax.reviews },
-                                        { label: "Posts", val: auditData.posts, max: mockMax.posts },
-                                        { label: "GEO", val: auditData.geo, max: mockMax.geo },
+                                        { label: "Fotos", val: auditData.photos, max: maxScores.photos },
+                                        { label: "Info", val: auditData.info, max: maxScores.info },
+                                        { label: "Review", val: auditData.reviews, max: maxScores.reviews },
+                                        { label: "Posts", val: auditData.posts, max: maxScores.posts },
+                                        { label: "GEO", val: auditData.geo, max: maxScores.geo },
                                     ].map((d) => {
                                         const pct = Math.round((d.val / d.max) * 100);
                                         const color = pct >= 70 ? "#1D9E75" : pct >= 40 ? "#EF9F27" : "#E24B4A";
