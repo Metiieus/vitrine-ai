@@ -174,26 +174,30 @@ export default function ConfiguracoesPage() {
       setUser(authUser);
 
       // Buscar perfil
-      const { data: profile } = await supabase.from('profiles').select('name').eq('id', authUser.id).single();
+      const { data: profileData } = await supabase.from('profiles').select('name').eq('id', authUser.id).single();
+      const profile = profileData as any;
 
       // Buscar dados do negócio
-      const { data: businesses } = (await supabase
+      const { data: businessesData } = await supabase
         .from("businesses")
         .select("*")
         .eq("user_id", authUser.id)
-        .limit(1)) as { data: any[]; error: any };
+        .limit(1);
+      const businesses = businessesData as any[] || [];
 
       if (businesses && businesses.length > 0) {
         setBusiness(businesses[0]);
       }
 
+      const meta = authUser.user_metadata as any;
+
       setFormData({
-        profileName: profile?.name || authUser.user_metadata?.name || "",
-        profilePhone: authUser.user_metadata?.phone || "",
-        businessName: businesses?.[0]?.name || "",
-        businessCategory: businesses?.[0]?.category || "",
-        businessCity: businesses?.[0]?.city || "",
-        businessState: businesses?.[0]?.state || ""
+        profileName: profile?.name || meta?.name || "",
+        profilePhone: meta?.phone || "",
+        businessName: businesses[0]?.name || "",
+        businessCategory: businesses[0]?.category || "",
+        businessCity: businesses[0]?.city || "",
+        businessState: businesses[0]?.state || ""
       });
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
