@@ -199,7 +199,7 @@ export default function AuditoriaPage() {
           return;
         }
 
-        const currentBusiness = businesses[0];
+        const currentBusiness = businesses[0] as Business;
         setBusiness(currentBusiness);
 
         // ✅ Buscar audit mais recente
@@ -219,7 +219,8 @@ export default function AuditoriaPage() {
           return;
         }
 
-        setAudit(latestAudit);
+        const audit = latestAudit as Audit;
+        setAudit(audit);
 
         // Construir categorias a partir do audit
         const builtCategories: Category[] = [
@@ -229,7 +230,7 @@ export default function AuditoriaPage() {
           "posts",
           "geo",
         ].map((catId) => {
-          const details = latestAudit.details?.[catId] || {};
+          const details = audit.details?.[catId] || {};
           const score = details.score || 0;
           const max = CATEGORY_MAX[catId] || 15;
 
@@ -247,7 +248,7 @@ export default function AuditoriaPage() {
         });
 
         setCategories(builtCategories);
-        setTotalScore(latestAudit.score || 0);
+        setTotalScore(audit.score || 0);
         setError(null);
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
@@ -297,7 +298,7 @@ export default function AuditoriaPage() {
         throw new Error(data.error || "Erro ao executar auditoria");
       }
 
-      const newAudit = await resp.json();
+      const newAudit = await resp.json() as Audit;
       setAudit(newAudit);
 
       // Reconstruir categorias com novos dados
