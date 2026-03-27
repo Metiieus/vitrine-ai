@@ -60,18 +60,15 @@ export async function fetchGridFromDB(
 
 /**
  * Gerar grid mock (usado quando DB não tem dados)
+ * @deprecated Remova este fallback — sempre mostrar "sem dados" se vazio
  */
 export function generateMockGrid(keyword: string): GridCell[][] {
-  const seed = keyword.length * 7 + keyword.charCodeAt(0);
+  // Retornar grid vazio ao invés de fake data
   const grid: GridCell[][] = [];
-
   for (let row = 0; row < 7; row++) {
     const rowData: GridCell[] = [];
     for (let col = 0; col < 7; col++) {
-      const distFromCenter = Math.sqrt(Math.pow(row - 3, 2) + Math.pow(col - 3, 2));
-      const base = Math.round(distFromCenter * 3.5 + ((seed * (row + 1) * (col + 1)) % 5));
-      const rank = Math.min(Math.max(1, base + Math.round(((seed % 7) - 3) * 0.5)), 20);
-      rowData.push({ rank: row === 3 && col === 3 ? 2 : rank, lat: 0, lng: 0 });
+      rowData.push({ rank: null, lat: 0, lng: 0 });
     }
     grid.push(rowData);
   }

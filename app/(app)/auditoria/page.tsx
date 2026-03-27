@@ -83,9 +83,9 @@ const CATEGORY_MAX: Record<string, number> = {
 function CategoryCard({
   category,
 }: {
-  category: (typeof AUDIT_CATEGORIES)[0];
+  category: Category;
 }) {
-  const Icon = category.icon;
+  const Icon = CATEGORY_ICONS[category.id];
   const pct = Math.round((category.score / category.max) * 100);
   const done = category.items.filter((i) => i.done).length;
 
@@ -165,9 +165,172 @@ function CategoryCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AuditoriaPage() {
-  const pending = AUDIT_CATEGORIES.flatMap((c) =>
+  const supabase = createClient();
+
+  // State para dados reais
+  const [audit, setAudit] = useState<Audit | null>(null);
+  const [business, setBusiness] = useState<Business | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalScore, setTotalScore] = useState(0);
+
+  // ✅ Carregar dados reais do Supabase
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const user = await supabase.auth.getUser();
+        if (!user.data.user) {
+          setError("Usuário não autenticado");
+          setLoading(false);
+          return;
+        }
+
+        // Fetch businesses do usuário
+        const { data: businesses, error: businessError } = await supabase
+          .from("businesses")
+          .select("*")
+          .eq("user_id", user.data.user.id)
+          .limit(1);
+
+        if (businessError || !businesses || businesses.length === 0) {
+          setError("Nenhum negócio encontrado. Conecte um de seus negócios.");
+          setLoading(false);
+          return;
+        }
+
+        const currentBusiness = businesses[0];
+        setBusiness(currentBusiness);
+
+        // ✅ Buscar audit mais recente
+        const { data: latestAudit, error: auditError } = await supabase
+          .from("audits")
+          .select("*")
+          .eq("business_id", currentBusiness.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (auditError) throw auditError;
+
+        if (!latestAudit) {
+          setError("Nenhuma auditoria encontrada. Execute uma auditoria primeiramente.");
+          setLoading(false);
+          return;
+        }
+
+        setAudit(latestAudit);
+
+        // Construir categorias a partir do audit
+        const builtCategories: Category[] = [
+          "photos",
+          "info",
+          "reviews",
+          "posts",
+          "geo",
+        ].map((catId) => {
+          const details = latestAudit.details?.[catId] || {};
+          const score = details.score || 0;
+          const max = CATEGORY_MAX[catId] || 15;
+
+          return {
+            id: catId as "photos" | "info" | "reviews" | "posts" | "geo",
+            label: CATEGORY_LABELS[catId],
+            icon: CATEGORY_ICONS[catId],
+            score,
+            max,
+            color: CATEGORY_COLORS[catId],
+            items: details.items || [
+              { text: "Dados não disponíveis", done: false },
+            ],
+          };
+        });
+
+        setCategories(builtCategories);
+        setTotalScore(latestAudit.score || 0);
+        setError(null);
+      } catch (err) {
+        console.error("Erro ao carregar dados:", err);
+        setError(
+          err instanceof Error ? err.message : "Erro ao carregar auditoria"
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0A0F0D] text-[#dadedd] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1D9E75]" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0A0F0D] text-[#dadedd] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const pending = categories.flatMap((c) =>
     c.items.filter((i) => !i.done)
   ).length;
+
+  async function handleNewAudit() {
+    try {
+      const resp = await fetch("/api/audit/full", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId: business?.id }),
+      });
+
+      if (!resp.ok) {
+        const data = await resp.json();
+        throw new Error(data.error || "Erro ao executar auditoria");
+      }
+
+      const newAudit = await resp.json();
+      setAudit(newAudit);
+
+      // Reconstruir categorias com novos dados
+      const builtCategories: Category[] = [
+        "photos",
+        "info",
+        "reviews",
+        "posts",
+        "geo",
+      ].map((catId) => {
+        const details = newAudit.details?.[catId] || {};
+        const score = details.score || 0;
+        const max = CATEGORY_MAX[catId] || 15;
+
+        return {
+          id: catId as "photos" | "info" | "reviews" | "posts" | "geo",
+          label: CATEGORY_LABELS[catId],
+          icon: CATEGORY_ICONS[catId],
+          score,
+          max,
+          color: CATEGORY_COLORS[catId],
+          items: details.items || [
+            { text: "Dados não disponíveis", done: false },
+          ],
+        };
+      });
+
+      setCategories(builtCategories);
+      setTotalScore(newAudit.score || 0);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro ao executar auditoria");
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#0A0F0D] text-[#dadedd]">
@@ -191,7 +354,10 @@ export default function AuditoriaPage() {
               </p>
             </div>
           </div>
-          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1a1f1c] border border-[#2a2f2c] text-sm text-[#9a9f9c] hover:text-[#FAFBFA] hover:border-[#3a3f3c] transition-all w-fit">
+          <button
+            onClick={handleNewAudit}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1a1f1c] border border-[#2a2f2c] text-sm text-[#9a9f9c] hover:text-[#FAFBFA] hover:border-[#3a3f3c] transition-all w-fit"
+          >
             <RefreshCw className="w-4 h-4" />
             Nova auditoria
           </button>
@@ -199,7 +365,7 @@ export default function AuditoriaPage() {
 
         {/* Score geral */}
         <div className="bg-[#1a1f1c] border border-[#2a2f2c] rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-center gap-6">
-          <ScoreGauge score={TOTAL_SCORE} size={160} />
+          <ScoreGauge score={totalScore} size={160} />
           <div className="flex-1">
             <h2 className="text-lg font-semibold text-[#FAFBFA] mb-1">
               Score de saúde do perfil
@@ -209,7 +375,7 @@ export default function AuditoriaPage() {
               score e aparecer mais no Google e nas IAs.
             </p>
             <div className="grid grid-cols-5 gap-2">
-              {AUDIT_CATEGORIES.map((c) => {
+              {categories.map((c) => {
                 const pct = Math.round((c.score / c.max) * 100);
                 return (
                   <div key={c.id} className="flex flex-col items-center gap-1">
@@ -231,7 +397,7 @@ export default function AuditoriaPage() {
 
         {/* Categories grid */}
         <div className="grid lg:grid-cols-2 gap-6">
-          {AUDIT_CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <CategoryCard key={cat.id} category={cat} />
           ))}
         </div>
