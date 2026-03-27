@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { redirect } from "next/navigation";
 import {
   Star,
   Sparkles,
@@ -12,116 +13,148 @@ import {
   Check,
   Send,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Review = {
   id: string;
-  author: string;
+  author_name: string;
   rating: number;
   text: string;
-  date: string;
-  status: "pending" | "responded";
-  aiResponse: string | null;
+  created_at: string;
+  response_status: "draft" | "published" | "archived";
+  ai_response: string | null;
+  business_id: string;
 };
 
-const MOCK_REVIEWS: Review[] = [
-  {
-    id: "1",
-    author: "Maria Silva",
-    rating: 5,
-    text: "Melhor pizza da região! Massa crocante, recheio generoso e atendimento nota 10. Já virei cliente fiel. Recomendo muito!",
-    date: "2 dias atrás",
-    status: "pending",
-    aiResponse: null,
-  },
-  {
-    id: "2",
-    author: "João Pereira",
-    rating: 2,
-    text: "Esperei mais de 1 hora pelo pedido e chegou frio. Muito decepcionante para um sábado à noite.",
-    date: "3 dias atrás",
-    status: "pending",
-    aiResponse: null,
-  },
-  {
-    id: "3",
-    author: "Ana Costa",
-    rating: 4,
-    text: "Boa pizza, ambiente agradável. O único ponto negativo foi a demora para pagar. Mas voltaria sim.",
-    date: "5 dias atrás",
-    status: "pending",
-    aiResponse: null,
-  },
-  {
-    id: "4",
-    author: "Carlos Mendes",
-    rating: 5,
-    text: "Excelente! Pizza deliciosa, chegou quente e no prazo. Entregador super simpático.",
-    date: "1 semana atrás",
-    status: "responded",
-    aiResponse:
-      "Que ótimo ouvir isso, Carlos! Ficamos muito felizes que a pizza chegou no ponto certo e que você foi bem atendido. Sua satisfação é o que nos motiva todo dia. Até a próxima! 🍕",
-  },
-  {
-    id: "5",
-    author: "Fernanda Lima",
-    rating: 3,
-    text: "Pizza ok, nada demais. Esperava mais pelo preço.",
-    date: "1 semana atrás",
-    status: "pending",
-    aiResponse: null,
-  },
-  {
-    id: "6",
-    author: "Roberto Alves",
-    rating: 5,
-    text: "Fiz aniversário aqui e foi incrível! Atendimento personalizado, decoração, tudo perfeito.",
-    date: "2 semanas atrás",
-    status: "responded",
-    aiResponse:
-      "Roberto, que honra ter celebrado seu aniversário com a gente! Foi um prazer especial cuidar de cada detalhe para tornar seu dia ainda mais especial. Esperamos que tenha sido uma noite inesquecível. Volte sempre! 🎉",
-  },
-];
+type Business = {
+  id: string;
+  name: string;
+  category: string;
+  city: string;
+  state: string;
+};
 
-// Dados do negócio mock — será substituído pelo negócio real do usuário
-const MOCK_BUSINESS = {
-  name: "Casa da Pizza",
-  category: "Restaurante",
-  city: "São Paulo",
-  state: "SP",
+type Business = {
+  id: string;
+  name: string;
+  category: string;
+  city: string;
+  state: string;
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ReviewsPage() {
-  const [reviews, setReviews] = useState(MOCK_REVIEWS);
-  const [filter, setFilter] = useState<"all" | "pending" | "responded">("all");
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [business, setBusiness] = useState<Business | null>(null);
+  const [filter, setFilter] = useState<"all" | "draft" | "published">("all");
   const [generating, setGenerating] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
+
+  // ✅ NOVO: Carregar dados reais do Supabase
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function loadData() {
+    try {
+      setLoading(true);
+      
+      // Buscar usuário
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        redirect("/login");
+      }
+
+      // Buscar primeiro negócio do usuário
+      const { data: businesses, error: businessError } = await supabase
+        .from("businesses")
+        .select("*")
+        .eq("user_id", user.id)
+        .limit(1);
+
+      if (businessError || !businesses || businesses.length === 0) {
+        setError("Nenhum negócio encontrado. Conecte um de seus negócios.");
+        setLoading(false);
+        return;
+      }
+
+      const currentBusiness = businesses[0];
+      setBusiness(currentBusiness);
+
+      // ✅ Buscar reviews REAIS deste negócio
+      const { data: realReviews, error: reviewError } = await supabase
+        .from("reviews")
+        .select("*")
+        .eq("business_id", currentBusiness.id)
+        .order("created_at", { ascending: false });
+
+      if (reviewError) throw reviewError;
+
+      setReviews(realReviews || []);
+      setError(null);
+    } catch (err) {
+      console.error("Erro ao carregar dados:", err);
+      setError(
+        err instanceof Error ? err.message : "Erro ao carregar reviews"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0A0F0D] text-[#dadedd] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1D9E75]" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0A0F0D] text-[#dadedd] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   const filtered = reviews.filter(
-    (r) => filter === "all" || r.status === filter
+    (r) => filter === "all" || r.response_status === (filter === "pending" ? "draft" : filter === "responded" ? "published" : filter)
   );
-  const pendingCount = reviews.filter((r) => r.status === "pending").length;
+  const pendingCount = reviews.filter(
+    (r) => !r.ai_response || r.response_status === "draft"
+  ).length;
 
   async function generateResponse(id: string) {
     const review = reviews.find((r) => r.id === id);
-    if (!review) return;
+    if (!review || !business) return;
 
     setGenerating(id);
     try {
+      // ✅ USAR dados reais do business ao invés de MOCK_BUSINESS
       const resp = await fetch("/api/ai/review-response", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          authorName: review.author,
+          authorName: review.author_name,
           rating: review.rating,
           text: review.text,
-          businessName: MOCK_BUSINESS.name,
-          category: MOCK_BUSINESS.category,
-          city: MOCK_BUSINESS.city,
-          state: MOCK_BUSINESS.state,
+          businessName: business.name,
+          category: business.category,
+          city: business.city,
+          state: business.state,
         }),
       });
 
@@ -129,9 +162,24 @@ export default function ReviewsPage() {
 
       if (!resp.ok) throw new Error(data.error ?? "Erro ao gerar resposta");
 
+      // Salvar resposta no banco de dados
+      const { error: updateError } = await supabase
+        .from("reviews")
+        .update({
+          ai_response: data.response,
+          response_status: "draft",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      // Atualizar estado local
       setReviews((prev) =>
         prev.map((r) =>
-          r.id === id ? { ...r, aiResponse: data.response } : r
+          r.id === id
+            ? { ...r, ai_response: data.response, response_status: "draft" }
+            : r
         )
       );
     } catch (err) {
@@ -147,9 +195,25 @@ export default function ReviewsPage() {
     setTimeout(() => setCopied(null), 2000);
   }
 
-  function markResponded(id: string) {
+  async function markResponded(id: string) {
+    // Salvar no banco que a resposta foi publicada
+    const { error } = await supabase
+      .from("reviews")
+      .update({
+        response_status: "published",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (error) {
+      alert("Erro ao salvar resposta");
+      return;
+    }
+
     setReviews((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: "responded" } : r))
+      prev.map((r) =>
+        r.id === id ? { ...r, response_status: "published" } : r
+      )
     );
   }
 
@@ -218,11 +282,11 @@ export default function ReviewsPage() {
               <div className="flex flex-col min-[440px]:flex-row items-start min-[440px]:justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0F6E56] to-[#5DCAA5] flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
-                    {review.author[0]}
+                    {review.author_name[0]}
                   </div>
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-[#FAFBFA] truncate">
-                      {review.author}
+                      {review.author_name}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <div className="flex">
@@ -236,17 +300,19 @@ export default function ReviewsPage() {
                           />
                         ))}
                       </div>
-                      <span className="text-xs text-[#5a5f5c]">{review.date}</span>
+                      <span className="text-xs text-[#5a5f5c]">
+                        {new Date(review.created_at).toLocaleDateString("pt-BR")}
+                      </span>
                     </div>
                   </div>
                 </div>
                 <span
-                  className={`text-[10px] font-semibold px-2 py-1 rounded-full uppercase tracking-wider flex-shrink-0 ${review.status === "responded"
+                  className={`text-[10px] font-semibold px-2 py-1 rounded-full uppercase tracking-wider flex-shrink-0 ${review.response_status === "published"
                     ? "bg-[rgba(29,158,117,0.1)] text-[#5DCAA5]"
                     : "bg-[rgba(239,159,39,0.1)] text-[#EF9F27]"
                     }`}
                 >
-                  {review.status === "responded" ? (
+                  {review.response_status === "published" ? (
                     <span className="flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" /> Respondida
                     </span>
@@ -264,7 +330,7 @@ export default function ReviewsPage() {
               </p>
 
               {/* AI Response */}
-              {review.aiResponse ? (
+              {review.ai_response ? (
                 <div className="bg-[rgba(29,158,117,0.05)] border border-[rgba(29,158,117,0.15)] rounded-xl p-4 mb-3">
                   <div className="flex items-center gap-2 mb-2">
                     <Sparkles className="w-3.5 h-3.5 text-[#1D9E75]" />
@@ -273,11 +339,11 @@ export default function ReviewsPage() {
                     </span>
                   </div>
                   <p className="text-sm text-[#dadedd] leading-relaxed">
-                    {review.aiResponse}
+                    {review.ai_response}
                   </p>
                   <div className="flex items-center gap-2 mt-3">
                     <button
-                      onClick={() => copyResponse(review.id, review.aiResponse!)}
+                      onClick={() => copyResponse(review.id, review.ai_response!)}
                       className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#2a2f2c] text-[#9a9f9c] hover:text-[#FAFBFA] transition-colors"
                     >
                       {copied === review.id ? (
@@ -287,7 +353,7 @@ export default function ReviewsPage() {
                       )}
                       {copied === review.id ? "Copiado!" : "Copiar"}
                     </button>
-                    {review.status === "pending" && (
+                    {review.response_status === "draft" && (
                       <button
                         onClick={() => markResponded(review.id)}
                         className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#1D9E75] text-white hover:bg-[#3DB88E] transition-colors"
@@ -298,7 +364,7 @@ export default function ReviewsPage() {
                     )}
                   </div>
                 </div>
-              ) : review.status === "pending" ? (
+              ) : review.response_status === "draft" ? (
                 <button
                   onClick={() => generateResponse(review.id)}
                   disabled={generating === review.id}

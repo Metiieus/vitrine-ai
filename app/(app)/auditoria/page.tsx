@@ -1,3 +1,8 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { getLatestAudit } from "@/lib/supabase/queries";
 import {
   Camera,
   Info,
@@ -9,92 +14,69 @@ import {
   AlertCircle,
   ArrowLeft,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { ScoreGauge } from "@/components/dashboard/ScoreGauge";
 
-export const metadata = { title: "Auditoria" };
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+type Category = {
+  id: "photos" | "info" | "reviews" | "posts" | "geo";
+  label: string;
+  icon: any;
+  score: number;
+  max: number;
+  color: string;
+  items: Array<{ text: string; done: boolean; tip?: string }>;
+};
 
-const AUDIT_CATEGORIES = [
-  {
-    id: "photos",
-    label: "Fotos e Mídia",
-    icon: Camera,
-    score: 21,
-    max: 25,
-    color: "#5DCAA5",
-    items: [
-      { text: "Logo do negócio adicionado", done: true },
-      { text: "Foto de capa configurada", done: true },
-      { text: "5 ou mais fotos do ambiente", done: true },
-      { text: "3 ou mais fotos de produtos/serviços", done: false, tip: "Adicione fotos do cardápio ou dos seus produtos" },
-      { text: "Fotos atualizadas nos últimos 90 dias", done: false, tip: "A última foto foi adicionada há 47 dias" },
-    ],
-  },
-  {
-    id: "info",
-    label: "Informações e Categorias",
-    icon: Info,
-    score: 22,
-    max: 25,
-    color: "#1D9E75",
-    items: [
-      { text: "Descrição com 150+ caracteres", done: true },
-      { text: "Categoria principal correta", done: true },
-      { text: "2 ou mais categorias secundárias", done: true },
-      { text: "Horários preenchidos (todos os dias)", done: true },
-      { text: "Horários especiais/feriados configurados", done: false, tip: "Configure os horários do Carnaval e Semana Santa" },
-      { text: "Atributos preenchidos (Wi-Fi, estacionamento...)", done: true },
-      { text: "Website e telefone cadastrados", done: true },
-    ],
-  },
-  {
-    id: "reviews",
-    label: "Reviews",
-    icon: Star,
-    score: 12,
-    max: 20,
-    color: "#EF9F27",
-    items: [
-      { text: "50 ou mais avaliações no Google", done: true },
-      { text: "Nota média 4.0 ou superior", done: true },
-      { text: "80%+ das reviews respondidas", done: false, tip: "Você tem 23 reviews sem resposta — use a IA para responder rápido" },
-      { text: "Tempo médio de resposta menor que 48h", done: false, tip: "Média atual: 6 dias. Responda mais rápido para melhorar o score" },
-    ],
-  },
-  {
-    id: "posts",
-    label: "Google Posts",
-    icon: FileText,
-    score: 7,
-    max: 15,
-    color: "#EF9F27",
-    items: [
-      { text: "Possui pelo menos 1 post publicado", done: true },
-      { text: "Post publicado nos últimos 7 dias", done: false, tip: "Último post há 11 dias — use o gerador de posts para publicar hoje" },
-      { text: "4 ou mais posts no último mês", done: false, tip: "Apenas 1 post este mês. Meta: 4 posts/mês" },
-      { text: "Posts com imagem", done: true },
-      { text: "Posts com chamada para ação (CTA)", done: false, tip: "Adicione um CTA como 'Visite-nos' ou 'Agende agora'" },
-    ],
-  },
-  {
-    id: "geo",
-    label: "Visibilidade em IAs — GEO",
-    icon: Globe,
-    score: 9,
-    max: 15,
-    color: "#EF9F27",
-    items: [
-      { text: "Aparece nas respostas do Gemini", done: false, tip: "Adicione sua cidade e bairro na descrição para melhorar a visibilidade" },
-      { text: "Aparece nas respostas do ChatGPT", done: true },
-      { text: "Mencionado em 3 ou mais IAs", done: false, tip: "Você aparece em 2 de 5 plataformas monitoradas" },
-    ],
-  },
-];
+type Audit = {
+  id: string;
+  score: number;
+  details?: Record<string, any>;
+  created_at: string;
+};
 
-const TOTAL_SCORE = AUDIT_CATEGORIES.reduce((s, c) => s + c.score, 0);
+type Business = {
+  id: string;
+  name: string;
+  category: string;
+  city: string;
+  state: string;
+};
+
+const CATEGORY_ICONS: Record<string, any> = {
+  photos: Camera,
+  info: Info,
+  reviews: Star,
+  posts: FileText,
+  geo: Globe,
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  photos: "#5DCAA5",
+  info: "#1D9E75",
+  reviews: "#EF9F27",
+  posts: "#EF9F27",
+  geo: "#EF9F27",
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  photos: "Fotos e Mídia",
+  info: "Informações e Categorias",
+  reviews: "Reviews",
+  posts: "Google Posts",
+  geo: "Visibilidade em IAs — GEO",
+};
+
+const CATEGORY_MAX: Record<string, number> = {
+  photos: 25,
+  info: 25,
+  reviews: 20,
+  posts: 15,
+  geo: 15,
+};
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 

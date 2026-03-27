@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import {
   FileText,
   Sparkles,
@@ -14,26 +15,23 @@ import {
   Tag,
 } from "lucide-react";
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-const MOCK_POSTS = [
-  {
-    id: "1",
-    text: "🍕 Fim de semana chegou e a pizza perfeita também! Venha experimentar nosso novo sabor Trufa com Rúcula — disponível por tempo limitado. Reserve sua mesa agora pelo WhatsApp! #PizzaMoema #CasaDaPizza",
-    createdAt: "Há 11 dias",
-    hasImage: true,
-    hasCta: true,
-    views: 312,
-  },
-  {
-    id: "2",
-    text: "☕ Bom dia, Moema! Que tal uma pizza no almoço de hoje? Estamos abertos das 11h às 15h com buffet especial. Venha nos visitar! #AlmocoDePizza #Moema",
-    createdAt: "Há 18 dias",
-    hasImage: false,
-    hasCta: true,
-    views: 198,
-  },
-];
+type Business = {
+  id: string;
+  name: string;
+  category: string;
+  city: string;
+  state: string;
+};
+
+type Post = {
+  id: string;
+  content: string;
+  created_at: string;
+  status: "draft" | "scheduled" | "published";
+  media_url: string | null;
+};
 
 const TOPICS = [
   "Promoção da semana",
@@ -44,23 +42,93 @@ const TOPICS = [
   "Dica relacionada ao negócio",
 ];
 
-// Dados do negócio mock — será substituído pelo negócio real do usuário
-const MOCK_BUSINESS = {
-  name: "Casa da Pizza",
-  category: "Restaurante",
-  city: "São Paulo",
-  state: "SP",
-};
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PostsPage() {
+  const supabase = createClient();
+
+  // State para dados reais
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [business, setBusiness] = useState<Business | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // State do formulário
   const [showForm, setShowForm] = useState(false);
   const [topic, setTopic] = useState(TOPICS[0]);
   const [customTopic, setCustomTopic] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState("");
   const [copied, setCopied] = useState(false);
+
+  // ✅ Carregar dados reais do Supabase
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const user = await supabase.auth.getUser();
+        if (!user.data.user) {
+          setError("Usuário não autenticado");
+          setLoading(false);
+          return;
+        }
+
+        // Fetch businesses do usuário
+        const { data: businesses, error: businessError } = await supabase
+          .from("businesses")
+          .select("*")
+          .eq("user_id", user.data.user.id)
+          .limit(1);
+
+        if (businessError || !businesses || businesses.length === 0) {
+          setError("Nenhum negócio encontrado. Conecte um de seus negócios.");
+          setLoading(false);
+          return;
+        }
+
+        const currentBusiness = businesses[0];
+        setBusiness(currentBusiness);
+
+        // ✅ Fetch posts REAIS deste negócio
+        const { data: realPosts, error: postError } = await supabase
+          .from("google_posts")
+          .select("*")
+          .eq("business_id", currentBusiness.id)
+          .order("created_at", { ascending: false });
+
+        if (postError) throw postError;
+
+        setPosts(realPosts || []);
+        setError(null);
+      } catch (err) {
+        console.error("Erro ao carregar dados:", err);
+        setError(
+          err instanceof Error ? err.message : "Erro ao carregar posts"
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0A0F0D] text-[#dadedd] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1D9E75]" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0A0F0D] text-[#dadedd] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   async function handleGenerate() {
     setGenerating(true);
@@ -70,10 +138,10 @@ export default function PostsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          businessName: MOCK_BUSINESS.name,
-          category: MOCK_BUSINESS.category,
-          city: MOCK_BUSINESS.city,
-          state: MOCK_BUSINESS.state,
+          businessName: business!.name,
+          category: business!.category,
+          city: business!.city,
+          state: business!.state,
           topic: customTopic.trim() || topic,
         }),
       });
@@ -91,6 +159,33 @@ export default function PostsPage() {
     await navigator.clipboard.writeText(generated);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handlePublish() {
+    if (!generated || !business) return;
+
+    try {
+      const { data, error: insertError } = await supabase
+        .from("google_posts")
+        .insert({
+          business_id: business.id,
+          content: generated,
+          status: "draft",
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      // Atualizar lista local
+      setPosts([data, ...posts]);
+      setGenerated("");
+      setShowForm(false);
+      alert("Post salvo com sucesso!");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro ao publicar post");
+    }
   }
 
   return (
@@ -198,7 +293,10 @@ export default function PostsPage() {
                     {copied ? <Check className="w-3 h-3 text-[#1D9E75]" /> : <Copy className="w-3 h-3" />}
                     {copied ? "Copiado!" : "Copiar texto"}
                   </button>
-                  <button className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#1D9E75] text-white hover:bg-[#3DB88E] transition-colors">
+                  <button 
+                    onClick={handlePublish}
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#1D9E75] text-white hover:bg-[#3DB88E] transition-colors"
+                  >
                     <Eye className="w-3 h-3" />
                     Publicar no Google
                   </button>
@@ -221,41 +319,46 @@ export default function PostsPage() {
         </h2>
 
         <div className="flex flex-col gap-4">
-          {MOCK_POSTS.map((post) => (
-            <div
-              key={post.id}
-              className="bg-[#1a1f1c] border border-[#2a2f2c] rounded-2xl p-5"
-            >
-              <p className="text-sm text-[#dadedd] leading-relaxed mb-4">
-                {post.text}
-              </p>
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-4 text-xs text-[#5a5f5c]">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" /> {post.createdAt}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Eye className="w-3 h-3" /> {post.views} visualizações
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {post.hasImage && (
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-[rgba(29,158,117,0.1)] text-[#5DCAA5] flex items-center gap-1">
-                      <ImageIcon className="w-3 h-3" /> Imagem
+          {posts.length === 0 ? (
+            <div className="text-center py-8 text-[#5a5f5c]">
+              <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p>Nenhum post publicado ainda</p>
+            </div>
+          ) : (
+            posts.map((post) => (
+              <div
+                key={post.id}
+                className="bg-[#1a1f1c] border border-[#2a2f2c] rounded-2xl p-5"
+              >
+                <p className="text-sm text-[#dadedd] leading-relaxed mb-4">
+                  {post.content}
+                </p>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-4 text-xs text-[#5a5f5c]">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" /> {new Date(post.created_at).toLocaleDateString("pt-BR")}
                     </span>
-                  )}
-                  {post.hasCta && (
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-[rgba(93,202,165,0.1)] text-[#5DCAA5]">
-                      CTA
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {post.media_url && (
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-[rgba(29,158,117,0.1)] text-[#5DCAA5] flex items-center gap-1">
+                        <ImageIcon className="w-3 h-3" /> Imagem
+                      </span>
+                    )}
+                    <span className={`text-[10px] px-2 py-0.5 rounded ${
+                      post.status === "published"
+                        ? "bg-[rgba(29,158,117,0.1)] text-[#5DCAA5]"
+                        : post.status === "scheduled"
+                        ? "bg-[rgba(239,159,39,0.1)] text-[#EF9F27]"
+                        : "bg-[rgba(93,202,165,0.1)] text-[#5DCAA5]"
+                    }`}>
+                      {post.status === "published" ? "Publicado" : post.status === "scheduled" ? "Agendado" : "Rascunho"}
                     </span>
-                  )}
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-[rgba(29,158,117,0.1)] text-[#5DCAA5]">
-                    Publicado
-                  </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         {/* Empty hint */}

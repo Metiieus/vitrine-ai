@@ -249,6 +249,34 @@ export async function getBusinessGeoChecks(businessId: string) {
 }
 
 /**
+ * Obter última auditoria de um negócio
+ */
+export async function getLatestAudit(businessId: string) {
+  const user = await getUser();
+  const supabase = createSupabaseServer();
+
+  // Verificar que o negócio pertence ao usuário
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('id', businessId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (businessError || !business) throw new Error('Negócio não encontrado');
+
+  const { data, error } = await supabase
+    .from('audits')
+    .select('*')
+    .eq('business_id', businessId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data || null;
+}
+
+/**
  * Criar novo negócio
  */
 export async function createBusiness(params: {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import {
   Globe,
   Sparkles,
@@ -12,102 +13,249 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-const PLATFORMS = [
-  {
-    id: "gemini",
+type Business = {
+  id: string;
+  name: string;
+  category: string;
+  city: string;
+  state: string;
+};
+
+type GeoCheck = {
+  id: string;
+  ai_platform: string;
+  query: string;
+  found: boolean;
+  position?: number;
+  snippet?: string;
+  checked_at: string;
+};
+
+type PlatformData = {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  found: boolean;
+  lastCheck: string;
+  queries: Array<{ query: string; found: boolean; snippet: string | null }>;
+  tip: string | null;
+};
+
+const PLATFORM_INFO: Record<string, { name: string; icon: string; color: string; tip: string | null }> = {
+  gemini: {
     name: "Google Gemini",
     icon: "G",
     color: "#4285F4",
-    found: false,
-    lastCheck: "Há 2 horas",
-    queries: [
-      { query: "melhor pizzaria em Moema", found: false, snippet: null },
-      { query: "recomendação de restaurante em Moema SP", found: false, snippet: null },
-      { query: "pizzaria boa e barata em São Paulo Moema", found: false, snippet: null },
-    ],
     tip: "Adicione sua cidade e bairro na descrição do perfil para aparecer nas respostas do Gemini.",
   },
-  {
-    id: "chatgpt",
+  chatgpt: {
     name: "ChatGPT",
     icon: "C",
     color: "#10A37F",
-    found: true,
-    lastCheck: "Há 2 horas",
-    queries: [
-      { query: "melhor pizzaria em Moema São Paulo", found: true, snippet: "Casa da Pizza em Moema é frequentemente citada como uma das melhores da região, conhecida pela massa crocante e ingredientes frescos." },
-      { query: "onde comer pizza em Moema", found: true, snippet: "Casa da Pizza (Moema) — ótimas avaliações no Google, especialidade em massa fina." },
-      { query: "pizzaria artesanal Moema", found: false, snippet: null },
-    ],
     tip: null,
   },
-  {
-    id: "perplexity",
+  perplexity: {
     name: "Perplexity",
     icon: "P",
     color: "#7C5CFC",
-    found: true,
-    lastCheck: "Há 2 horas",
-    queries: [
-      { query: "melhor pizzaria Moema SP", found: true, snippet: "#1 — Casa da Pizza, Moema. Rating 4.3/5 com 847 avaliações no Google Maps." },
-      { query: "pizza artesanal São Paulo Moema", found: false, snippet: null },
-      { query: "restaurante pizzaria Moema recomendação", found: true, snippet: "Casa da Pizza se destaca na região de Moema com forno a lenha e ingredientes italianos." },
-    ],
     tip: null,
   },
-  {
-    id: "copilot",
+  copilot: {
     name: "Copilot (Bing)",
     icon: "B",
     color: "#0078D4",
-    found: false,
-    lastCheck: "Há 2 horas",
-    queries: [
-      { query: "melhor pizzaria Moema", found: false, snippet: null },
-      { query: "pizza artesanal São Paulo sul", found: false, snippet: null },
-      { query: "restaurante pizza Moema avaliações", found: false, snippet: null },
-    ],
     tip: "Mantenha seu perfil do Google Business atualizado para melhorar presença no Bing.",
   },
-  {
-    id: "aioverviews",
+  aioverviews: {
     name: "AI Overviews",
     icon: "AI",
     color: "#1D9E75",
-    found: false,
-    lastCheck: "Há 2 horas",
-    queries: [
-      { query: "pizzaria Moema SP", found: false, snippet: null },
-      { query: "melhor pizza São Paulo sul", found: false, snippet: null },
-      { query: "pizza artesanal moema", found: false, snippet: null },
-    ],
     tip: "AI Overviews do Google aparece para negócios com perfil completo e muitas avaliações positivas.",
   },
-];
-
-const HISTORY = [
-  { date: "Mar 24", found: 2 },
-  { date: "Mar 17", found: 2 },
-  { date: "Mar 10", found: 1 },
-  { date: "Mar 03", found: 1 },
-  { date: "Feb 24", found: 0 },
-];
+};
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function GeoPage() {
-  const [selected, setSelected] = useState(PLATFORMS[0].id);
+  const supabase = createClient();
+
+  // State para dados reais
+  const [geoChecks, setGeoChecks] = useState<GeoCheck[]>([]);
+  const [business, setBusiness] = useState<Business | null>(null);
+  const [platforms, setPlatforms] = useState<PlatformData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string>("gemini");
   const [refreshing, setRefreshing] = useState(false);
 
-  const platform = PLATFORMS.find((p) => p.id === selected)!;
-  const foundCount = PLATFORMS.filter((p) => p.found).length;
+  // ✅ Carregar dados reais do Supabase
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const user = await supabase.auth.getUser();
+        if (!user.data.user) {
+          setError("Usuário não autenticado");
+          setLoading(false);
+          return;
+        }
+
+        // Fetch businesses do usuário
+        const { data: businesses, error: businessError } = await supabase
+          .from("businesses")
+          .select("*")
+          .eq("user_id", user.data.user.id)
+          .limit(1);
+
+        if (businessError || !businesses || businesses.length === 0) {
+          setError("Nenhum negócio encontrado. Conecte um de seus negócios.");
+          setLoading(false);
+          return;
+        }
+
+        const currentBusiness = businesses[0];
+        setBusiness(currentBusiness);
+
+        // ✅ Fetch geo_checks REAIS deste negócio
+        const { data: realChecks, error: checkError } = await supabase
+          .from("geo_checks")
+          .select("*")
+          .eq("business_id", currentBusiness.id)
+          .order("checked_at", { ascending: false });
+
+        if (checkError) throw checkError;
+
+        setGeoChecks(realChecks || []);
+
+        // Agrupar por ai_platform e construir platforms array
+        const grouped: Record<string, GeoCheck[]> = {};
+        for (const check of realChecks || []) {
+          if (!grouped[check.ai_platform]) {
+            grouped[check.ai_platform] = [];
+          }
+          grouped[check.ai_platform].push(check);
+        }
+
+        const builtPlatforms: PlatformData[] = Object.entries(PLATFORM_INFO).map(
+          ([platformId, info]) => {
+            const checks = grouped[platformId] || [];
+            const foundAny = checks.some((c) => c.found);
+            const mostRecent = checks[0];
+
+            return {
+              id: platformId,
+              ...info,
+              found: foundAny,
+              lastCheck: mostRecent
+                ? formatTimeAgo(new Date(mostRecent.checked_at))
+                : "Nunca verificado",
+              queries: checks.map((c) => ({
+                query: c.query,
+                found: c.found,
+                snippet: c.snippet || null,
+              })),
+            };
+          }
+        );
+
+        setPlatforms(builtPlatforms);
+        setSelected(builtPlatforms[0]?.id || "gemini");
+        setError(null);
+      } catch (err) {
+        console.error("Erro ao carregar dados:", err);
+        setError(err instanceof Error ? err.message : "Erro ao carregar GEO data");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  function formatTimeAgo(date: Date): string {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 60) return `Há ${diffMins} minuto${diffMins !== 1 ? "s" : ""}`;
+    if (diffHours < 24) return `Há ${diffHours} hora${diffHours !== 1 ? "s" : ""}`;
+    return `Há ${diffDays} dia${diffDays !== 1 ? "s" : ""}`;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0A0F0D] text-[#dadedd] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1D9E75]" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0A0F0D] text-[#dadedd] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const platform = platforms.find((p) => p.id === selected);
+  const foundCount = platforms.filter((p) => p.found).length;
 
   async function handleRefresh() {
     setRefreshing(true);
-    await new Promise((r) => setTimeout(r, 2000));
-    setRefreshing(false);
+    try {
+      // Chamar API para reexecutar verificações GEO
+      const resp = await fetch("/api/geo/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId: business?.id }),
+      });
+      if (!resp.ok) throw new Error("Erro ao verificar GEO");
+
+      // Recarregar dados após verificação
+      const updates = await resp.json();
+      setGeoChecks(updates);
+
+      // Reagrupar plataformas
+      const grouped: Record<string, GeoCheck[]> = {};
+      for (const check of updates) {
+        if (!grouped[check.ai_platform]) {
+          grouped[check.ai_platform] = [];
+        }
+        grouped[check.ai_platform].push(check);
+      }
+
+      const builtPlatforms: PlatformData[] = Object.entries(PLATFORM_INFO).map(
+        ([platformId, info]) => {
+          const checks = grouped[platformId] || [];
+          const foundAny = checks.some((c) => c.found);
+          
+          return {
+            id: platformId,
+            ...info,
+            found: foundAny,
+            lastCheck: "Agora",
+            queries: checks.map((c) => ({
+              query: c.query,
+              found: c.found,
+              snippet: c.snippet || null,
+            })),
+          };
+        }
+      );
+
+      setPlatforms(builtPlatforms);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro ao verificar");
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   return (
@@ -123,7 +271,7 @@ export default function GeoPage() {
             <p className="text-sm text-[#5a5f5c]">
               Presença nas IAs generativas — você aparece em{" "}
               <span className="text-[#1D9E75] font-semibold">{foundCount}</span> de{" "}
-              {PLATFORMS.length} plataformas
+              {platforms.length} plataformas
             </p>
           </div>
           <button
@@ -144,7 +292,7 @@ export default function GeoPage() {
                 className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-display font-bold text-[#1D9E75]"
                 style={{ background: "rgba(29,158,117,0.1)" }}
               >
-                {foundCount}/{PLATFORMS.length}
+                {foundCount}/{platforms.length}
               </div>
               <div>
                 <div className="text-lg font-semibold text-[#FAFBFA]">
@@ -160,20 +308,9 @@ export default function GeoPage() {
               </div>
             </div>
 
-            {/* History bars */}
-            <div className="flex-1 flex items-end gap-2 justify-end">
-              <span className="text-xs text-[#5a5f5c] mr-1">Histórico:</span>
-              {HISTORY.map((h) => (
-                <div key={h.date} className="flex flex-col items-center gap-1">
-                  <div className="w-6 bg-[#2a2f2c] rounded-sm overflow-hidden" style={{ height: "40px" }}>
-                    <div
-                      className="w-full rounded-sm bg-[#1D9E75] transition-all"
-                      style={{ height: `${(h.found / PLATFORMS.length) * 100}%`, marginTop: "auto" }}
-                    />
-                  </div>
-                  <span className="text-[9px] text-[#5a5f5c]">{h.date.split(" ")[1]}</span>
-                </div>
-              ))}
+            {/* Placeholder for future history */}
+            <div className="flex-1 flex items-center justify-end">
+              <span className="text-xs text-[#5a5f5c]">Histórico em breve</span>
             </div>
           </div>
 
@@ -181,7 +318,7 @@ export default function GeoPage() {
           <div className="h-2 rounded-full bg-[#2a2f2c] mt-5 overflow-hidden">
             <div
               className="h-full rounded-full bg-[#1D9E75] transition-all duration-700"
-              style={{ width: `${(foundCount / PLATFORMS.length) * 100}%` }}
+              style={{ width: `${(foundCount / platforms.length) * 100}%` }}
             />
           </div>
         </div>
@@ -189,7 +326,7 @@ export default function GeoPage() {
         <div className="grid lg:grid-cols-[260px_1fr] gap-6">
           {/* Platform list */}
           <div className="flex flex-col gap-2">
-            {PLATFORMS.map((p) => (
+            {platforms.map((p) => (
               <button
                 key={p.id}
                 onClick={() => setSelected(p.id)}
@@ -223,6 +360,7 @@ export default function GeoPage() {
           </div>
 
           {/* Platform detail */}
+          {platform && (
           <div className="bg-[#1a1f1c] border border-[#2a2f2c] rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-5">
               <div
@@ -312,6 +450,7 @@ export default function GeoPage() {
               </div>
             )}
           </div>
+          )}
         </div>
 
         {/* GEO tip */}
