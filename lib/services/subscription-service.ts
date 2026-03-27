@@ -1,5 +1,4 @@
 import { createSupabaseServer, getUser } from "@/lib/supabase/queries";
-import { PLANES } from "@/lib/mercadopago/client";
 
 export type Result<T, E = Error> =
     | { success: true; data: T }
@@ -9,7 +8,7 @@ export class SubscriptionService {
     /**
      * Obter o status atual da assinatura do usuário
      */
-    static async getCurrentSubscription(): Promise<Result<{ isActive: boolean; plan: string; subscription: any }>> {
+    static async getCurrentSubscription(): Promise<Result<{ isActive: boolean; plan: string; subscription: Record<string, unknown> | null }>> {
         try {
             const user = await getUser();
             const supabase = createSupabaseServer();
@@ -30,7 +29,7 @@ export class SubscriptionService {
                     subscription: data,
                 }
             };
-        } catch (error: any) {
+        } catch (error) {
             console.error("[SubscriptionService] Error getting subscription:", error);
             return { success: false, error: error as Error };
         }
@@ -48,8 +47,8 @@ export class SubscriptionService {
 
         if (!isActive && plan !== "free") return false;
 
-        const features = (PLAN_FEATURES as any)[plan] || PLAN_FEATURES.free;
-        return !!features[feature];
+        const features = (PLAN_FEATURES as Record<string, typeof PLAN_FEATURES.free>)[plan] || PLAN_FEATURES.free;
+        return !!(features as Record<string, unknown>)[feature];
     }
 }
 

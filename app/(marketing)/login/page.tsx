@@ -66,9 +66,13 @@ export default function LoginPage() {
       document.cookie = `sb_onboarding_business_url=${encodeURIComponent(businessUrl)}; path=/; max-age=3600; SameSite=Lax`;
     }
 
+    const redirectTo = process.env.NODE_ENV === "production"
+      ? "https://vitrine-ai-five.vercel.app/api/auth/callback?next=/dashboard"
+      : `${window.location.origin}/api/auth/callback?next=/dashboard`;
+
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${location.origin}/api/auth/callback` },
+      options: { redirectTo },
     });
   }
 

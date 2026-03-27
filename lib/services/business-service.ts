@@ -17,10 +17,10 @@ export class BusinessService {
                 .order("created_at", { ascending: false });
 
             if (error) throw error;
-            return { success: true, data: data || [] } as Result<any[]>;
+            return { success: true, data: data || [] } as Result<Record<string, unknown>[]>;
         } catch (error) {
             console.error("[BusinessService] Error listing businesses:", error);
-            return { success: false, error: error as Error } as Result<any[]>;
+            return { success: false, error: error as Error } as Result<Record<string, unknown>[]>;
         }
     }
 
@@ -44,10 +44,10 @@ export class BusinessService {
                 throw error;
             }
 
-            return { success: true, data } as Result<any>;
+            return { success: true, data } as Result<Record<string, unknown>>;
         } catch (error) {
             console.error("[BusinessService] Error getting business:", error);
-            return { success: false, error: error as Error } as Result<any>;
+            return { success: false, error: error as Error } as Result<Record<string, unknown>>;
         }
     }
 
@@ -72,10 +72,10 @@ export class BusinessService {
                 .single();
 
             if (error) throw error;
-            return { success: true, data } as Result<any>;
+            return { success: true, data } as Result<Record<string, unknown>>;
         } catch (error) {
             console.error("[BusinessService] Error creating business:", error);
-            return { success: false, error: error as Error } as Result<any>;
+            return { success: false, error: error as Error } as Result<Record<string, unknown>>;
         }
     }
 }

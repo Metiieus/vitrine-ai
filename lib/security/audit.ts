@@ -1,9 +1,13 @@
 import { createSupabaseServer } from "@/lib/supabase/queries";
 import { headers } from "next/headers";
 
+/**
+ * 🔒 Registrar evento de auditoria no Supabase
+ */
 export async function logAudit(params: {
     action: string;
     resource?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     details?: any;
     userId?: string;
 }) {
@@ -30,6 +34,6 @@ export async function logAudit(params: {
             console.error("[AuditLog] Failed to save log:", error.message);
         }
     } catch (error) {
-        console.error("[AuditLog] Critical error:", error);
+        console.error("[AuditLog] Critical error during audit logging:", error);
     }
 }

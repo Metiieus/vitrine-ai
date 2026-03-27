@@ -129,7 +129,9 @@ const PRIO = {
 };
 
 type DashboardClientProps = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     business: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     latestAudit: any;
     pendingReviewsCount: number;
 };
@@ -174,6 +176,7 @@ export function DashboardClient({ business, latestAudit, pendingReviewsCount }: 
     const auditData = latestAudit?.category_scores || { photos: 0, info: 0, reviews: 0, posts: 0, geo: 0 };
     const mockMax = { photos: 25, info: 25, reviews: 20, posts: 15, geo: 15 };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const MOCK_TASKS = latestAudit?.tasks?.map((t: any, i: number) => ({
         id: String(i),
         priority: t.priority,
@@ -311,6 +314,7 @@ export function DashboardClient({ business, latestAudit, pendingReviewsCount }: 
                             <button className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[rgba(29,158,117,0.08)] border border-[rgba(29,158,117,0.2)] text-[#1D9E75] hover:bg-[rgba(29,158,117,0.14)] transition-colors"><Zap className="w-3.5 h-3.5" /> Gerar com IA</button>
                         </div>
                         <div className="flex flex-col gap-2">
+                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                             {MOCK_TASKS.map((t: any) => {
                                 const p = PRIO[t.priority as keyof typeof PRIO] || PRIO.medium;
                                 return (

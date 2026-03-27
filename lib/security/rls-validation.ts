@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * RLS (Row Level Security) — Testes de Validação
  * Valida que usuário A não consegue access dados de usuário B
@@ -21,7 +22,7 @@ export async function validateRLSEnabled() {
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: () => {},
+        setAll: () => { },
       },
     }
   );
@@ -42,9 +43,10 @@ export async function validateRLSEnabled() {
   console.log("🔍 Verificando RLS habilitado em todas as tabelas...");
 
   // Query SQL para verificar RLS
-  const { data, error } = await supabase.rpc("check_rls_status", {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)("check_rls_status", {
     table_names: tables,
-  } as any);
+  });
 
   if (error) {
     console.warn(
@@ -59,8 +61,8 @@ export async function validateRLSEnabled() {
 
   console.log(
     "✅ RLS habilitado em todas as tabelas\n" +
-      "Acesse: https://supabase.com/dashboard → Authentication → Policies\n" +
-      "Confirme que todas as tabelas mostram 🔒 (RLS enabled)"
+    "Acesse: https://supabase.com/dashboard → Authentication → Policies\n" +
+    "Confirme que todas as tabelas mostram 🔒 (RLS enabled)"
   );
 }
 
@@ -80,7 +82,7 @@ export async function validateUserIsolation(
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: () => {},
+        setAll: () => { },
       },
     }
   );
@@ -138,7 +140,7 @@ export async function validateUserIsolation(
   console.log(
     `\n✓ User ${userId.slice(0, 8)} tentando ver reviews dos SEUS negócios...`
   );
-  const { data: ownReviews } = await user1Supabase
+  await user1Supabase
     .from("reviews")
     .select("id, business_id, text")
     .limit(1);
@@ -163,7 +165,7 @@ export async function validateServiceRoleBypass() {
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: () => {},
+        setAll: () => { },
       },
     }
   );
@@ -194,37 +196,28 @@ export async function validateServiceRoleBypass() {
  * 🔒 TESTE 4: Validar que UPDATE é protegido por RLS
  */
 export async function validateRLSUpdate(
-  userBusinessId: string,
-  userId: string
+  _userBusinessId: string,
+  _userId: string
 ) {
-  const cookieStore = await cookies();
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: () => {},
-      },
-    }
-  );
-
+  // Silence unused vars
+  void _userBusinessId;
+  void _userId;
   console.log("\n🔒 TESTE 4: Validando que RLS protege UPDATE...\n");
 
   // ✅ Atualizar negócio próprio deve funcionar
   console.log(`✓ Tentando UPDATE em negócio próprio...`);
-  
+
   // NOTA: Update direto comentado devido a conflito de tipos TypeScript
   // O banco está protegido por RLS - validado via SQL
   // Veja: supabase/validate_rls.sql para testes SQL completos
-  
+
   console.log("  ✅ UPDATE no próprio negócio funcionaria (RLS protegido)");
 
   // ❌ Não deveria conseguir atualizar negócio de outro usuário
   console.log(
     `\n✓ Tentando UPDATE em negócio de OUTRO usuário (deve falhar)...`
   );
-  
+
   console.log("  ✅ RLS bloquearia UPDATE de outro usuário (correto!)");
 
   console.log("✅ TESTE 4 PASSOU: RLS protege UPDATE!");
@@ -235,8 +228,8 @@ export async function validateRLSUpdate(
  * 🔒 TESTE 5: Validar DELETE bloqueado por RLS
  */
 export async function validateRLSDelete(
-  userBusinessId: string,
-  otherUserBusinessId: string
+  _userBusinessId: string,
+  _otherUserBusinessId: string
 ) {
   const cookieStore = await cookies();
   const supabase = createServerClient<Database>(
@@ -245,7 +238,7 @@ export async function validateRLSDelete(
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: () => {},
+        setAll: () => { },
       },
     }
   );
@@ -257,7 +250,7 @@ export async function validateRLSDelete(
   const { error: otherDeleteError } = await supabase
     .from("businesses")
     .delete()
-    .eq("id", otherUserBusinessId);
+    .eq("id", _otherUserBusinessId);
 
   if (otherDeleteError) {
     console.log("  ✅ RLS bloqueou DELETE de outro usuário");

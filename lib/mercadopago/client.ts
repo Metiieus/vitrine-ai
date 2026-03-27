@@ -195,7 +195,7 @@ export function validateWebhookSignature(
 ): boolean {
   if (!signature) return false;
 
-  // Mercado Pago usa HMAC-SHA256
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const crypto = require('crypto');
   const expected = crypto
     .createHmac('sha256', token)

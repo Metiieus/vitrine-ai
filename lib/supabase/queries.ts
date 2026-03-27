@@ -331,7 +331,6 @@ export async function respondToReview(
  * Publicar resposta para review (integração com Google)
  */
 export async function publishReviewResponse(reviewId: string) {
-  const user = await getUser();
   const supabase = createSupabaseServer();
 
   const { data, error } = await supabase
@@ -348,7 +347,7 @@ export async function publishReviewResponse(reviewId: string) {
   return data;
 }
 
-export default {
+const supabaseQueries = {
   getUser,
   getUserProfile,
   getUserBusinesses,
@@ -363,3 +362,5 @@ export default {
   respondToReview,
   publishReviewResponse,
 };
+
+export default supabaseQueries;

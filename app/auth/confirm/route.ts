@@ -11,7 +11,9 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { type EmailOtpType } from "@supabase/supabase-js";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const APP_URL = process.env.NODE_ENV === "production"
+  ? "https://vitrine-ai-five.vercel.app"
+  : (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;

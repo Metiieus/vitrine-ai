@@ -17,7 +17,9 @@ import {
 import { listAccounts } from "@/lib/google/business";
 import { encrypt } from "@/lib/utils/encrypt";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const APP_URL = process.env.NODE_ENV === "production"
+  ? "https://vitrine-ai-five.vercel.app"
+  : (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
 
 function redirectError(msg: string) {
   return NextResponse.redirect(
@@ -101,7 +103,7 @@ export async function GET(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
-      cookies: { getAll: () => [], setAll: () => {} },
+      cookies: { getAll: () => [], setAll: () => { } },
     }
   );
 

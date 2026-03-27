@@ -18,7 +18,15 @@ export interface AuditResult {
     }>;
 }
 
-export async function runBusinessAudit(businessId: string): Promise<AuditResult> {
+export async function logGDBSync() {
+    // This function is a placeholder for logging GDB sync operations.
+    // The parameters _userId and _businessId are prefixed with an underscore
+    // to indicate they are intentionally unused in this mock implementation,
+    // silencing potential linter warnings.
+    console.log(`Logging GDB sync`);
+}
+
+export async function runBusinessAudit(_businessId: string): Promise<AuditResult> {
     // In a real scenario, this would:
     // 1. Fetch fresh data from Google Business Profile API using the user's connected account
     // 2. Fetch fresh data from Gemini/Perplexity for GEO visibility

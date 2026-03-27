@@ -14,6 +14,7 @@ export function useNavigate() {
 
   const navigate = (href: string) => {
     setIsNavigating(true);
+    // Handlers for router events can be added here if needed
     // Usar setTimeout para melhorar performance
     setTimeout(() => {
       router.push(href);

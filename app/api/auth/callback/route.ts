@@ -10,18 +10,18 @@ export const dynamic = "force-dynamic";
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
 export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl;
+  const origin = "https://vitrine-ai-five.vercel.app";
+  const requestUrl = new URL(request.url);
+  const { searchParams } = requestUrl;
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/dashboard";
 
   if (!code) {
-    return NextResponse.redirect(`${APP_URL}/login?error=oauth_sem_code`);
+    return NextResponse.redirect(`${origin}/login?error=oauth_sem_code`);
   }
 
-  const response = NextResponse.redirect(`${APP_URL}${next}`);
+  const response = NextResponse.redirect(`${origin}${next}`);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error("Supabase OAuth callback error:", error.message);
-    return NextResponse.redirect(`${APP_URL}/login?error=oauth_falhou`);
+    return NextResponse.redirect(`${origin}/login?error=oauth_falhou`);
   }
 
   // 🔄 RECUPERAR BUSINESS URL DO COOKIE SE EXISTIR

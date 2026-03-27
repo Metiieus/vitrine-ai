@@ -44,6 +44,7 @@ export async function fetchGridFromDB(
   for (let row = 0; row < 7; row++) {
     const rowCells: GridCell[] = [];
     for (let col = 0; col < 7; col++) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ranking = (rankings as any)?.find((r: any) => r.grid_row === row && r.grid_col === col);
       rowCells.push({
         rank: ranking?.rank || null,
