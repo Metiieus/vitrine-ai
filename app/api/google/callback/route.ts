@@ -126,7 +126,8 @@ export async function GET(request: NextRequest) {
 
   if (upsertError) {
     console.error("Failed to save Google connection:", upsertError);
-    return redirectError("Erro ao salvar conexão. Tente novamente.");
+    // Para debug em produção, vamos passar o código do erro
+    return redirectError(`Erro ao salvar conexão: ${upsertError.message || JSON.stringify(upsertError)}`);
   }
 
   // 7. Redirecionar para seleção de negócio
