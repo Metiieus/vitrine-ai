@@ -100,9 +100,16 @@ export async function GET(request: NextRequest) {
     : null;
 
   // 6. Salvar/atualizar no Supabase (admin client — bypassa RLS)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+
+  if (!supabaseUrl || !supabaseKey) {
+    return redirectError("Configuração do servidor incompleta (Supabase).");
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: { getAll: () => [], setAll: () => { } },
     }
