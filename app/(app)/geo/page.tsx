@@ -103,11 +103,11 @@ export default function GeoPage() {
         }
 
         // Fetch businesses do usuário
-        const { data: businesses, error: businessError } = await supabase
+        const { data: businesses, error: businessError } = (await supabase
           .from("businesses")
           .select("*")
           .eq("user_id", user.data.user.id)
-          .limit(1);
+          .limit(1)) as { data: any[]; error: any };
 
         if (businessError || !businesses || businesses.length === 0) {
           setError("Nenhum negócio encontrado. Conecte um de seus negócios.");
@@ -119,11 +119,11 @@ export default function GeoPage() {
         setBusiness(currentBusiness);
 
         // ✅ Fetch geo_checks REAIS deste negócio
-        const { data: realChecks, error: checkError } = await supabase
+        const { data: realChecks, error: checkError } = (await supabase
           .from("geo_checks")
           .select("*")
           .eq("business_id", currentBusiness.id)
-          .order("checked_at", { ascending: false });
+          .order("checked_at", { ascending: false })) as { data: any[]; error: any };
 
         if (checkError) throw checkError;
 
@@ -235,7 +235,7 @@ export default function GeoPage() {
         ([platformId, info]) => {
           const checks = grouped[platformId] || [];
           const foundAny = checks.some((c) => c.found);
-          
+
           return {
             id: platformId,
             ...info,
@@ -302,8 +302,8 @@ export default function GeoPage() {
                   {foundCount === 0
                     ? "Você ainda não aparece em nenhuma IA"
                     : foundCount < 3
-                    ? "Presença parcial — há espaço para melhorar"
-                    : "Boa presença nas IAs generativas"}
+                      ? "Presença parcial — há espaço para melhorar"
+                      : "Boa presença nas IAs generativas"}
                 </div>
               </div>
             </div>
@@ -330,11 +330,10 @@ export default function GeoPage() {
               <button
                 key={p.id}
                 onClick={() => setSelected(p.id)}
-                className={`flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${
-                  selected === p.id
+                className={`flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${selected === p.id
                     ? "border-[rgba(29,158,117,0.3)] bg-[rgba(29,158,117,0.08)]"
                     : "border-[#2a2f2c] bg-[#1a1f1c] hover:border-[#3a3f3c]"
-                }`}
+                  }`}
               >
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
@@ -361,95 +360,93 @@ export default function GeoPage() {
 
           {/* Platform detail */}
           {platform && (
-          <div className="bg-[#1a1f1c] border border-[#2a2f2c] rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-5">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold"
-                style={{ background: platform.color + "22", color: platform.color }}
-              >
-                {platform.icon}
-              </div>
-              <div>
-                <h2 className="text-[15px] font-semibold text-[#FAFBFA]">
-                  {platform.name}
-                </h2>
-                <span
-                  className={`text-xs font-medium ${
-                    platform.found ? "text-[#5DCAA5]" : "text-[#F09595]"
-                  }`}
-                >
-                  {platform.found ? "✓ Você aparece nesta plataforma" : "✗ Não encontrado"}
-                </span>
-              </div>
-            </div>
-
-            {/* Queries */}
-            <h3 className="text-xs font-semibold text-[#9a9f9c] uppercase tracking-wider mb-3">
-              Consultas monitoradas
-            </h3>
-            <div className="flex flex-col gap-3 mb-5">
-              {platform.queries.map((q, i) => (
+            <div className="bg-[#1a1f1c] border border-[#2a2f2c] rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-5">
                 <div
-                  key={i}
-                  className={`p-3.5 rounded-xl border ${
-                    q.found
-                      ? "border-[rgba(29,158,117,0.2)] bg-[rgba(29,158,117,0.05)]"
-                      : "border-[#2a2f2c] bg-[rgba(255,255,255,0.02)]"
-                  }`}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold"
+                  style={{ background: platform.color + "22", color: platform.color }}
                 >
-                  <div className="flex items-center gap-2 mb-1.5">
-                    {q.found ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#1D9E75] flex-shrink-0" />
+                  {platform.icon}
+                </div>
+                <div>
+                  <h2 className="text-[15px] font-semibold text-[#FAFBFA]">
+                    {platform.name}
+                  </h2>
+                  <span
+                    className={`text-xs font-medium ${platform.found ? "text-[#5DCAA5]" : "text-[#F09595]"
+                      }`}
+                  >
+                    {platform.found ? "✓ Você aparece nesta plataforma" : "✗ Não encontrado"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Queries */}
+              <h3 className="text-xs font-semibold text-[#9a9f9c] uppercase tracking-wider mb-3">
+                Consultas monitoradas
+              </h3>
+              <div className="flex flex-col gap-3 mb-5">
+                {platform.queries.map((q, i) => (
+                  <div
+                    key={i}
+                    className={`p-3.5 rounded-xl border ${q.found
+                        ? "border-[rgba(29,158,117,0.2)] bg-[rgba(29,158,117,0.05)]"
+                        : "border-[#2a2f2c] bg-[rgba(255,255,255,0.02)]"
+                      }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      {q.found ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#1D9E75] flex-shrink-0" />
+                      ) : (
+                        <XCircle className="w-3.5 h-3.5 text-[#E24B4A] flex-shrink-0" />
+                      )}
+                      <span className="text-sm text-[#dadedd] font-medium">
+                        &ldquo;{q.query}&rdquo;
+                      </span>
+                    </div>
+                    {q.snippet ? (
+                      <p className="text-xs text-[#9a9f9c] ml-5 leading-relaxed italic">
+                        &ldquo;{q.snippet}&rdquo;
+                      </p>
                     ) : (
-                      <XCircle className="w-3.5 h-3.5 text-[#E24B4A] flex-shrink-0" />
+                      <p className="text-xs text-[#5a5f5c] ml-5">
+                        Negócio não mencionado nesta consulta
+                      </p>
                     )}
-                    <span className="text-sm text-[#dadedd] font-medium">
-                      &ldquo;{q.query}&rdquo;
-                    </span>
                   </div>
-                  {q.snippet ? (
-                    <p className="text-xs text-[#9a9f9c] ml-5 leading-relaxed italic">
-                      &ldquo;{q.snippet}&rdquo;
+                ))}
+              </div>
+
+              {/* Tip */}
+              {platform.tip && (
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-[rgba(239,159,39,0.05)] border border-[rgba(239,159,39,0.15)]">
+                  <AlertCircle className="w-4 h-4 text-[#EF9F27] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-[#FAFBFA] mb-0.5">
+                      Como melhorar
                     </p>
-                  ) : (
-                    <p className="text-xs text-[#5a5f5c] ml-5">
-                      Negócio não mencionado nesta consulta
+                    <p className="text-xs text-[#9a9f9c] leading-relaxed">
+                      {platform.tip}
                     </p>
-                  )}
+                  </div>
                 </div>
-              ))}
+              )}
+
+              {platform.found && !platform.tip && (
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-[rgba(29,158,117,0.05)] border border-[rgba(29,158,117,0.15)]">
+                  <TrendingUp className="w-4 h-4 text-[#1D9E75] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-[#FAFBFA] mb-0.5">
+                      Continue assim!
+                    </p>
+                    <p className="text-xs text-[#9a9f9c] leading-relaxed">
+                      Seu negócio está sendo mencionado. Continue atualizando o
+                      perfil e respondendo reviews para manter a visibilidade.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-
-            {/* Tip */}
-            {platform.tip && (
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-[rgba(239,159,39,0.05)] border border-[rgba(239,159,39,0.15)]">
-                <AlertCircle className="w-4 h-4 text-[#EF9F27] flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-[#FAFBFA] mb-0.5">
-                    Como melhorar
-                  </p>
-                  <p className="text-xs text-[#9a9f9c] leading-relaxed">
-                    {platform.tip}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {platform.found && !platform.tip && (
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-[rgba(29,158,117,0.05)] border border-[rgba(29,158,117,0.15)]">
-                <TrendingUp className="w-4 h-4 text-[#1D9E75] flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-[#FAFBFA] mb-0.5">
-                    Continue assim!
-                  </p>
-                  <p className="text-xs text-[#9a9f9c] leading-relaxed">
-                    Seu negócio está sendo mencionado. Continue atualizando o
-                    perfil e respondendo reviews para manter a visibilidade.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
           )}
         </div>
 

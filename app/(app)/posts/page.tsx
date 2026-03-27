@@ -73,11 +73,11 @@ export default function PostsPage() {
         }
 
         // Fetch businesses do usuário
-        const { data: businesses, error: businessError } = await supabase
+        const { data: businesses, error: businessError } = (await supabase
           .from("businesses")
           .select("*")
           .eq("user_id", user.data.user.id)
-          .limit(1);
+          .limit(1)) as { data: any[]; error: any };
 
         if (businessError || !businesses || businesses.length === 0) {
           setError("Nenhum negócio encontrado. Conecte um de seus negócios.");
@@ -89,11 +89,11 @@ export default function PostsPage() {
         setBusiness(currentBusiness);
 
         // ✅ Fetch posts REAIS deste negócio
-        const { data: realPosts, error: postError } = await supabase
+        const { data: realPosts, error: postError } = (await supabase
           .from("google_posts")
           .select("*")
           .eq("business_id", currentBusiness.id)
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })) as { data: any[]; error: any };
 
         if (postError) throw postError;
 
@@ -172,7 +172,7 @@ export default function PostsPage() {
           content: generated,
           status: "draft",
           created_at: new Date().toISOString(),
-        })
+        } as any)
         .select()
         .single();
 
@@ -231,11 +231,10 @@ export default function PostsPage() {
                     <button
                       key={t}
                       onClick={() => { setTopic(t); setCustomTopic(""); }}
-                      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-                        topic === t && !customTopic
-                          ? "bg-[rgba(29,158,117,0.15)] border-[rgba(29,158,117,0.3)] text-[#5DCAA5]"
-                          : "border-[#2a2f2c] text-[#9a9f9c] hover:border-[#3a3f3c] hover:text-[#FAFBFA]"
-                      }`}
+                      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${topic === t && !customTopic
+                        ? "bg-[rgba(29,158,117,0.15)] border-[rgba(29,158,117,0.3)] text-[#5DCAA5]"
+                        : "border-[#2a2f2c] text-[#9a9f9c] hover:border-[#3a3f3c] hover:text-[#FAFBFA]"
+                        }`}
                     >
                       <Tag className="w-3 h-3" />
                       {t}
@@ -293,7 +292,7 @@ export default function PostsPage() {
                     {copied ? <Check className="w-3 h-3 text-[#1D9E75]" /> : <Copy className="w-3 h-3" />}
                     {copied ? "Copiado!" : "Copiar texto"}
                   </button>
-                  <button 
+                  <button
                     onClick={handlePublish}
                     className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#1D9E75] text-white hover:bg-[#3DB88E] transition-colors"
                   >
@@ -345,13 +344,12 @@ export default function PostsPage() {
                         <ImageIcon className="w-3 h-3" /> Imagem
                       </span>
                     )}
-                    <span className={`text-[10px] px-2 py-0.5 rounded ${
-                      post.status === "published"
-                        ? "bg-[rgba(29,158,117,0.1)] text-[#5DCAA5]"
-                        : post.status === "scheduled"
+                    <span className={`text-[10px] px-2 py-0.5 rounded ${post.status === "published"
+                      ? "bg-[rgba(29,158,117,0.1)] text-[#5DCAA5]"
+                      : post.status === "scheduled"
                         ? "bg-[rgba(239,159,39,0.1)] text-[#EF9F27]"
                         : "bg-[rgba(93,202,165,0.1)] text-[#5DCAA5]"
-                    }`}>
+                      }`}>
                       {post.status === "published" ? "Publicado" : post.status === "scheduled" ? "Agendado" : "Rascunho"}
                     </span>
                   </div>
