@@ -29,11 +29,18 @@ async function getSupabaseAdmin() {
 export async function getValidAccessToken(userId: string): Promise<string | null> {
   const supabase = await getSupabaseAdmin();
 
+  // ✅ GARANTIR isolamento por user_id (RLS + application-level validation)
   const { data: conn, error } = await supabase
     .from("google_connections")
-    .select("id, access_token_enc, refresh_token_enc, token_expires_at")
+    .select("id, access_token_enc, refresh_token_enc, token_expires_at, user_id")
     .eq("user_id", userId)
     .single();
+
+  // ✅ VALIDAÇÃO extra: verificar que user_id retornado matches
+  if (conn && (conn as any).user_id !== userId) {
+    console.error("[Security] RLS violation detected in getValidAccessToken");
+    return null;
+  }
 
   if (error || !conn) return null;
 
@@ -48,6 +55,7 @@ export async function getValidAccessToken(userId: string): Promise<string | null
 
   if (!conn.refresh_token_enc) return null;
 
+  // ✅ PROTEÇÃO contra race condition: usar conditional update
   const refreshToken = decrypt(conn.refresh_token_enc);
   const tokenData = await refreshAccessToken(refreshToken);
 
@@ -57,14 +65,21 @@ export async function getValidAccessToken(userId: string): Promise<string | null
   }
 
   const newExpiry = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
-  await supabase
+  
+  // ✅ Conditional update: apenas atualizar se não foi modificado por outro processo
+  const { error: updateError } = await supabase
     .from("google_connections")
     .update({
       access_token_enc: encrypt(tokenData.access_token),
       token_expires_at: newExpiry,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", conn.id);
+    .eq("id", conn.id)
+    .eq("token_expires_at", conn.token_expires_at);
+
+  if (updateError) {
+    console.warn("[Token Refresh] Outro processo já atualizou o token");
+  }
 
   return tokenData.access_token;
 }

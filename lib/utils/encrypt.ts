@@ -6,9 +6,22 @@ import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
  *   a 64-char hex string (= 32 bytes).
  *
  * Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+ * 
+ * ✅ SECURITY NOTE: This key should be rotated periodically and stored in Vault
+ * Future: Use Supabase Vault for secret management instead of env vars
  */
 
+let _cachedKey: Buffer | null = null;
+let _keyValidatedAt: number = 0;
+const KEY_CACHE_TTL = 3600000; // 1 hour
+
 function getKey(): Buffer {
+  // ✅ Cache validation result to avoid repeated env reads
+  const now = Date.now();
+  if (_cachedKey && now - _keyValidatedAt < KEY_CACHE_TTL) {
+    return _cachedKey;
+  }
+
   const hex = process.env.GOOGLE_TOKEN_ENCRYPTION_KEY;
   if (!hex || hex.length !== 64) {
     throw new Error(
@@ -16,7 +29,10 @@ function getKey(): Buffer {
         "Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
     );
   }
-  return Buffer.from(hex, "hex");
+
+  _cachedKey = Buffer.from(hex, "hex");
+  _keyValidatedAt = now;
+  return _cachedKey;
 }
 
 /**

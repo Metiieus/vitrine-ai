@@ -37,11 +37,29 @@ export function prefetchRoutes() {
  * Cache em memória para queries do Supabase
  * Evita re-fetches desnecessários
  */
+/**
+ * ✅ QueryCache com LRU (Least Recently Used) para evitar memory leaks
+ * Mantém máximo de 100 chaves + TTL de 5 minutos
+ */
 export class QueryCache {
   private cache = new Map<string, { data: unknown; timestamp: number }>();
+  private accessOrder: string[] = []; // Rastrear ordem de acesso
   private ttl = 5 * 60 * 1000; // 5 minutos
+  private maxSize = 100; // Máximo de chaves em cache
 
   set(key: string, data: unknown) {
+    // ✅ Se cache atingiu tamanho máximo, remover item menos recentemente usado
+    if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
+      const lruKey = this.accessOrder.shift();
+      if (lruKey) {
+        this.cache.delete(lruKey);
+      }
+    }
+
+    // Atualizar ordem de acesso
+    this.accessOrder = this.accessOrder.filter(k => k !== key);
+    this.accessOrder.push(key);
+
     this.cache.set(key, { data, timestamp: Date.now() });
   }
 
@@ -49,11 +67,16 @@ export class QueryCache {
     const item = this.cache.get(key);
     if (!item) return null;
 
-    // Invalidar se expirou
+    // ✅ Invalidar se expirou
     if (Date.now() - item.timestamp > this.ttl) {
       this.cache.delete(key);
+      this.accessOrder = this.accessOrder.filter(k => k !== key);
       return null;
     }
+
+    // ✅ Atualizar ordem de acesso (foi acessado recentemente)
+    this.accessOrder = this.accessOrder.filter(k => k !== key);
+    this.accessOrder.push(key);
 
     return item.data;
   }
@@ -61,9 +84,20 @@ export class QueryCache {
   clear(key?: string) {
     if (key) {
       this.cache.delete(key);
+      this.accessOrder = this.accessOrder.filter(k => k !== key);
     } else {
       this.cache.clear();
+      this.accessOrder = [];
     }
+  }
+
+  // ✅ Debug: obter stats do cache
+  getStats() {
+    return {
+      size: this.cache.size,
+      maxSize: this.maxSize,
+      ttlMs: this.ttl,
+    };
   }
 }
 

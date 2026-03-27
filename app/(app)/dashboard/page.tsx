@@ -28,12 +28,25 @@ export default async function DashboardPage() {
 
   const business = businesses[0];
 
-  const [audits, reviews, insights, geoChecks] = await Promise.all([
-    getBusinessAudits(business.id).catch(() => []),
-    getBusinessReviews(business.id).catch(() => []),
-    getBusinessInsights(business.id).catch(() => null),
-    getBusinessGeoChecks(business.id).catch(() => [])
-  ]);
+  // ✅ CONSOLIDAR queries: usar select() com relacionamentos ao invés de N+1
+  const supabase = await createClient();
+  const { data: businessData } = await supabase
+    .from('businesses')
+    .select(`
+      *,
+      audits(*),
+      reviews(*),
+      insights(*),
+      geo_checks(*)
+    `)
+    .eq('id', business.id)
+    .single()
+    .catch(() => ({ data: null }));
+
+  const audits = businessData?.audits ?? [];
+  const reviews = businessData?.reviews ?? [];
+  const insights = businessData?.insights?.[0] ?? null;
+  const geoChecks = businessData?.geo_checks ?? [];
 
   const latestAudit = audits.length > 0 ? audits[0] : null;
   // Filter for reviews that don't have an ai_response or aren't published
